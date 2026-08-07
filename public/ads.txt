@@ -1,0 +1,3 @@
+# TODO(business): replace with your real AdSense publisher line before launch, e.g.:
+# google.com, pub-0000000000000000, DIRECT, f08c47fec0942fa0
+# See docs/business.md §3 — this file must be correct once AdSense is linked, or ad requests get rejected.

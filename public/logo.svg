@@ -1,0 +1,21 @@
+<svg width="230" height="64" viewBox="0 0 230 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Marsa logo">
+  <defs>
+    <clipPath id="marsaSqLg">
+      <rect x="6" y="6" width="52" height="52" rx="8" />
+    </clipPath>
+  </defs>
+  <g transform="rotate(-5 32 32)">
+    <rect x="10" y="10" width="52" height="52" rx="8" fill="#07514D" />
+    <g clip-path="url(#marsaSqLg)">
+      <rect x="6" y="6" width="52" height="52" fill="#C8912B" />
+      <path d="M6,34 C20,26 38,42 58,30 L58,58 L6,58 Z" fill="#0B7A75" />
+    </g>
+    <rect x="6" y="6" width="52" height="52" rx="8" fill="none" stroke="#000000" stroke-width="4" />
+    <polygon points="14,25 34,25 40,18 20,18" fill="#131110" />
+    <polygon points="14,36 44,36 50,29 20,29" fill="#131110" />
+    <polygon points="14,47 50,47 56,40 20,40" fill="#131110" />
+  </g>
+  <text x="76" y="33" font-family="Space Grotesk, sans-serif" font-size="28" font-weight="700" fill="#131110">Marsa</text>
+  <rect x="77" y="41" width="120" height="4" fill="#C8912B" />
+  <text x="77" y="56" font-family="JetBrains Mono, monospace" font-size="9" letter-spacing="1.5" fill="#131110">MENA BUSINESS · JEDDAH</text>
+</svg>
