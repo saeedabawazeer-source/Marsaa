@@ -1,27 +1,29 @@
 import Link from "next/link";
-import { getLatestArticles, getMarketTicks, getWire } from "@/lib/api";
+import { getLatestArticles, getMarketTicks } from "@/lib/api";
 import { LiveTicker } from "@/components/ui/LiveTicker";
-import { Wire } from "@/components/ui/Wire";
 import { ArticleCard } from "@/components/ui/Card";
 import { AdSlot } from "@/components/ui/AdSlot";
 import { SubscribeForm } from "@/components/ui/SubscribeForm";
 import { fmtDay, fmtStamp } from "@/lib/time";
 
 /**
- * Regenerate every 5 minutes so the wire's timestamps stay current instead of
- * freezing at the moment of the last deploy. Without this the front page slowly
- * starts lying about how recent it is — the exact failure a reader notices
- * first on a news site.
+ * The market wire that used to sit in the right rail has been removed, not
+ * restyled.
+ *
+ * It generated its timestamps as "now minus a fixed offset" at render, so the
+ * top item was permanently eight minutes old for every visitor on every visit,
+ * forever — a component whose entire function was to manufacture the appearance
+ * of currency the newsroom did not have. Its ten lines were also invented market
+ * claims dressed as reporting, and none of them linked anywhere.
+ *
+ * Density is worth having. It is not worth having on those terms. The front
+ * page is thinner now and it is thinner honestly; the fix for thin is filing
+ * stories, not simulating them.
  */
-export const revalidate = 300;
 
 export default async function HomePage() {
   const now = new Date();
-  const [articlesRaw, ticks, wire] = await Promise.all([
-    getLatestArticles(),
-    getMarketTicks(),
-    getWire(now),
-  ]);
+  const [articlesRaw, ticks] = await Promise.all([getLatestArticles(), getMarketTicks()]);
   const nowIso = now.toISOString();
 
   const articles = [...articlesRaw].sort((a, b) => (a.publishedAt < b.publishedAt ? 1 : -1));
@@ -104,7 +106,7 @@ export default async function HomePage() {
           ten timestamped rows to the first scroll without adding ten more cards
           fighting the story grid for attention. */}
       <section className="mx-auto max-w-[1180px] px-4 py-9 sm:px-6">
-        <div className="grid gap-7 lg:grid-cols-[minmax(0,1.85fr)_minmax(0,1fr)]">
+        <div>
           <div>
             <div className="mb-4 flex items-baseline justify-between border-b-2 border-ink pb-2">
               <h2 className="text-xl font-bold">Top stories</h2>
@@ -145,9 +147,6 @@ export default async function HomePage() {
             )}
           </div>
 
-          <aside className="lg:sticky lg:top-4 lg:self-start">
-            <Wire items={wire} now={nowIso} />
-          </aside>
         </div>
       </section>
 
@@ -175,10 +174,10 @@ export default async function HomePage() {
       {secondHalf.length > 0 && (
         <section className="mx-auto max-w-[1180px] px-4 py-9 sm:px-6">
           <div className="mb-4 flex items-baseline justify-between border-b-2 border-ink pb-2">
-            <h2 className="text-xl font-bold">More from the desk</h2>
-            <Link href="/category/trade" className="font-mono text-xs font-bold text-teal-dark hover:underline">
-              All trade →
-            </Link>
+            {/* Heading, link and contents used to disagree: a block headed
+                "More from the desk" linked to "All trade" and held a single
+                MARKETS card. */}
+            <h2 className="text-xl font-bold">Also on Marsa</h2>
           </div>
           <div className="grid gap-5 md:grid-cols-3">
             {secondHalf.map((a) => (
@@ -188,7 +187,7 @@ export default async function HomePage() {
         </section>
       )}
 
-      <div className="bg-teal px-4 py-10 text-center text-paper sm:px-6">
+      <div id="brief" className="scroll-mt-4 bg-teal px-4 py-10 text-center text-paper sm:px-6">
         <h2 className="mb-2 text-2xl font-bold">Get the morning brief.</h2>
         <p className="mb-5 text-sm opacity-90">MENA business, in five minutes, before the Riyadh open.</p>
         <SubscribeForm />
