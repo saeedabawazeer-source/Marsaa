@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { NewsItem } from "@/lib/feeds";
 import { fmtAgo } from "@/lib/time";
 import { CATEGORY_LABELS_AR } from "@/lib/labels";
+import { Thumb } from "./Thumb";
 
 /**
  * A story card.
@@ -31,14 +32,6 @@ const DESK_ACCENT: Record<string, string> = {
   policy: "bg-teal-dark",
 };
 
-const TILE_STYLES: Record<string, string> = {
-  markets: "bg-teal text-paper",
-  energy: "bg-accent text-ink",
-  "real-estate": "bg-accent-dark text-ink",
-  trade: "bg-ink text-paper",
-  policy: "bg-teal-dark text-paper",
-};
-
 export function NewsCard({
   item,
   now,
@@ -63,20 +56,20 @@ export function NewsCard({
     >
       {/* Fixed 4:3 frame keeps every card in the grid on the same baseline. */}
       <div className="relative aspect-[4/3] w-full shrink-0 overflow-hidden border-b-2 border-inkBorder bg-paper">
-        {item.image ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={item.image}
-            alt=""
-            loading="lazy"
-            className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.04]"
-          />
-        ) : (
-          <div className={`flex h-full w-full flex-col justify-between p-4 ${TILE_STYLES[item.section] ?? "bg-teal text-paper"}`}>
-            <span className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] opacity-75">Marsa</span>
-            <span className="font-display text-2xl font-bold leading-none">{source}</span>
-          </div>
-        )}
+        {/* Thumb owns the no-picture case. The card used to branch on
+            `item.image ?` alone, which covers a missing URL but not a URL that
+            404s, hotlink-blocks, or resolves to a dark house placeholder — and
+            that is what left a black rectangle sitting under the lead headline
+            on the live front page. */}
+        <Thumb
+          src={item.image}
+          alt=""
+          source={source}
+          section={item.section}
+          eager={big}
+          sizes={big ? "(max-width: 1024px) 100vw, 700px" : "(max-width: 640px) 100vw, 360px"}
+          className="h-full w-full transition duration-300 group-hover:scale-[1.04]"
+        />
 
         <span className="absolute bottom-2.5 left-2.5 rounded-md bg-ink/85 px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-wide text-paper backdrop-blur-sm">
           {source}
