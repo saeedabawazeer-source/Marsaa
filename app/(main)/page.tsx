@@ -32,18 +32,34 @@ export default async function HomePage() {
               Read today&apos;s brief
             </Link>
           </div>
-          {featured && (
-            <Link
-              href={`/article/${featured.slug}`}
-              className="rounded border-4 border-inkBorder bg-paper p-5 text-ink shadow-dramatic-accent"
-            >
-              <span className="mb-2.5 inline-block rounded-full bg-teal px-2.5 py-1 font-mono text-[11px] font-bold uppercase text-white">
-                {featured.category}
-              </span>
-              <h3 className="mb-2 text-lg font-semibold leading-snug">{featured.title}</h3>
-              <p className="font-mono text-xs text-teal-dark">{featured.readMins} MIN READ · {featured.desk.toUpperCase()}</p>
-            </Link>
-          )}
+          <div className="flex flex-col gap-3">
+            {featured && (
+              <Link
+                href={`/article/${featured.slug}`}
+                className="rounded border-4 border-inkBorder bg-paper p-5 text-ink shadow-dramatic-accent"
+              >
+                <span className="mb-2.5 inline-block rounded-full bg-teal px-2.5 py-1 font-mono text-[11px] font-bold uppercase text-white">
+                  {featured.category}
+                </span>
+                <h3 className="mb-2 text-lg font-semibold leading-snug">{featured.title}</h3>
+                <p className="font-mono text-xs text-teal-dark">{featured.readMins} MIN READ · {featured.desk.toUpperCase()}</p>
+              </Link>
+            )}
+            {rest.length > 0 && (
+              <div className="rounded border-2 border-inkBorder/40 bg-teal-dark/40 p-3">
+                <span className="mb-2 block font-mono text-[11px] font-bold uppercase tracking-wide text-teal-light">Also today</span>
+                <ul className="flex flex-col gap-2">
+                  {rest.slice(0, 3).map((a) => (
+                    <li key={a.slug}>
+                      <Link href={`/article/${a.slug}`} className="text-sm leading-snug underline decoration-transparent underline-offset-2 hover:decoration-current">
+                        {a.title}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
         </div>
       </section>
 
