@@ -1,39 +1,42 @@
 import Link from "next/link";
 import type { NewsItem } from "@/lib/feeds";
 import { fmtAgo } from "@/lib/time";
+import { CATEGORY_LABELS_AR } from "@/lib/labels";
 
 /**
  * A story card.
  *
- * Cards route to Marsa's own preview at /story/[id], not straight out to the
- * publisher. The reader stays inside the app to browse, scan and decide; they
- * only leave at the moment they actually want to read the whole piece, and the
- * preview makes that hand-off explicit rather than surprising.
+ * Design notes, because the previous version was busier than it needed to be:
  *
- * The picture is the publisher's own thumbnail from their feed, always shown
- * under their name. Where a feed offers no image the card falls back to a
- * typographic tile built from the source and section rather than a grey box —
- * a missing photo should look deliberate, not broken.
+ *   - **4:3 art.** Every card reserves the same aspect ratio, so a grid of them
+ *     lines up on a shared baseline and nothing jumps as images load. It is
+ *     also the ratio most newsroom CMSs crop to, which means fewer awkward
+ *     centre-crops of people's heads.
+ *   - **One badge, not two.** The section badge sat on the picture competing
+ *     with the source badge for the same corner attention. The desk now reads
+ *     as a small coloured rule and label under the headline, where it belongs
+ *     as metadata; only the publisher gets a badge on the art, because that is
+ *     the piece of information a reader needs before they trust the headline.
+ *   - **Quieter frame.** Border weight drops from 3px to 2px and the shadow
+ *     from hard-offset to a soft lift. The brand's ink-border language is still
+ *     there — a grid of twelve heavy frames is just noise, and the card should
+ *     let the photograph and the headline carry it.
  */
 
-const SECTION_STYLES: Record<string, string> = {
-  markets: "bg-teal text-white",
-  energy: "bg-accent text-ink",
-  trade: "bg-ink text-paper",
-  startups: "bg-teal text-white",
-  "real-estate": "bg-accent text-ink",
-  policy: "bg-ink text-paper",
-  general: "bg-teal-dark text-white",
+const DESK_ACCENT: Record<string, string> = {
+  markets: "bg-teal",
+  energy: "bg-accent",
+  "real-estate": "bg-accent-dark",
+  trade: "bg-ink",
+  policy: "bg-teal-dark",
 };
 
 const TILE_STYLES: Record<string, string> = {
   markets: "bg-teal text-paper",
   energy: "bg-accent text-ink",
-  trade: "bg-ink text-paper",
-  startups: "bg-teal-dark text-paper",
   "real-estate": "bg-accent-dark text-ink",
-  policy: "bg-ink text-paper",
-  general: "bg-teal text-paper",
+  trade: "bg-ink text-paper",
+  policy: "bg-teal-dark text-paper",
 };
 
 export function NewsCard({
@@ -48,61 +51,63 @@ export function NewsCard({
   lang?: "en" | "ar";
 }) {
   const isAr = lang === "ar";
+  const base = isAr ? "/ar/story" : "/story";
   const source = isAr ? item.sourceNameAr : item.sourceName;
-  const artClass = big ? "h-52 sm:h-64" : "h-36";
+  const desk = isAr ? CATEGORY_LABELS_AR[item.section] ?? item.section : item.section.replace("-", " ");
 
   return (
     <Link
-      href={`/story/${item.id}`}
+      href={`${base}/${item.id}`}
       dir={isAr ? "rtl" : "ltr"}
-      className="group flex h-full flex-col overflow-hidden rounded border-[3px] border-inkBorder bg-white shadow-md transition hover:-translate-y-px hover:shadow-lg"
+      className="group flex h-full flex-col overflow-hidden rounded-lg border-2 border-inkBorder bg-white shadow-[0_2px_0_0_rgba(26,26,26,0.9)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_6px_0_0_rgba(26,26,26,0.9)]"
     >
-      <div className={`relative w-full shrink-0 overflow-hidden border-b-[3px] border-inkBorder ${artClass}`}>
+      {/* Fixed 4:3 frame keeps every card in the grid on the same baseline. */}
+      <div className="relative aspect-[4/3] w-full shrink-0 overflow-hidden border-b-2 border-inkBorder bg-paper">
         {item.image ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={item.image}
             alt=""
             loading="lazy"
-            className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
+            className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.04]"
           />
         ) : (
-          <div
-            className={`flex h-full w-full flex-col justify-between p-4 ${TILE_STYLES[item.section] ?? "bg-teal text-paper"}`}
-          >
-            <span className="font-mono text-[10px] font-bold uppercase tracking-[0.14em] opacity-80">Marsa</span>
+          <div className={`flex h-full w-full flex-col justify-between p-4 ${TILE_STYLES[item.section] ?? "bg-teal text-paper"}`}>
+            <span className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] opacity-75">Marsa</span>
             <span className="font-display text-2xl font-bold leading-none">{source}</span>
           </div>
         )}
 
-        <span className="absolute left-2.5 top-2.5 rounded-full border-2 border-inkBorder bg-paper px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wide text-ink shadow-sm">
+        <span className="absolute bottom-2.5 left-2.5 rounded-md bg-ink/85 px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-wide text-paper backdrop-blur-sm">
           {source}
-        </span>
-        <span
-          className={`absolute right-2.5 top-2.5 rounded-full border-2 border-inkBorder px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wide shadow-sm ${
-            SECTION_STYLES[item.section] ?? "bg-ink text-paper"
-          }`}
-        >
-          {item.section.replace("-", " ")}
         </span>
       </div>
 
       <div className={`flex flex-1 flex-col ${big ? "p-5" : "p-4"}`}>
+        {/* Desk as a coloured rule + label: readable, but it no longer fights
+            the photograph or the publisher badge for the eye. */}
+        <span className="mb-2 flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-gray-500">
+          <span aria-hidden className={`h-2.5 w-2.5 rounded-sm ${DESK_ACCENT[item.section] ?? "bg-teal"}`} />
+          {desk}
+        </span>
+
         <h3
           className={`mb-2 font-bold leading-snug transition group-hover:text-teal-dark ${
-            big ? "text-xl sm:text-2xl" : "text-[15px]"
+            big ? "text-xl sm:text-[26px]" : "line-clamp-3 text-[16px]"
           }`}
         >
           {item.title}
         </h3>
+
         {item.summary && (
-          <p className={`mb-3 text-gray-600 ${big ? "text-[15px] leading-relaxed" : "line-clamp-3 text-[13px] leading-relaxed"}`}>
+          <p className={`mb-3 text-gray-600 ${big ? "text-[15px] leading-relaxed" : "line-clamp-2 text-[13px] leading-relaxed"}`}>
             {item.summary}
           </p>
         )}
-        <div className="mt-auto flex items-center gap-2 font-mono text-[10px] uppercase tracking-wide text-gray-500">
+
+        <div className="mt-auto flex items-center justify-between font-mono text-[10px] uppercase tracking-wide text-gray-400">
           <time dateTime={item.publishedAt}>{fmtAgo(item.publishedAt, now, lang)}</time>
-          <span aria-hidden className="ml-auto text-teal-dark transition group-hover:translate-x-0.5">
+          <span aria-hidden className="text-teal-dark transition group-hover:translate-x-0.5">
             {isAr ? "←" : "→"}
           </span>
         </div>

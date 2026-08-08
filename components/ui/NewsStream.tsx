@@ -86,6 +86,7 @@ export function NewsStream({
   lang?: "en" | "ar";
 }) {
   const isAr = lang === "ar";
+  const base = isAr ? "/ar/story" : "/story";
   const [query, setQuery] = useState("");
   const [source, setSource] = useState<string>("all");
   const [onlySaved, setOnlySaved] = useState(false);
@@ -113,12 +114,12 @@ export function NewsStream({
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return items.filter((i) => {
-      if (source !== "all" && i.sourceName !== source) return false;
+      if (source !== "all" && (isAr ? i.sourceNameAr : i.sourceName) !== source) return false;
       if (onlySaved && !saved.has(i.id)) return false;
       if (!q) return true;
       return i.title.toLowerCase().includes(q) || i.summary.toLowerCase().includes(q);
     });
-  }, [items, query, source, onlySaved, saved]);
+  }, [items, query, source, onlySaved, saved, isAr]);
 
   const freshCount = useMemo(() => {
     if (!mounted || lastVisit == null) return 0;
@@ -142,7 +143,7 @@ export function NewsStream({
         });
       } else if (e.key === "o" && cursor >= 0 && filtered[cursor]) {
         e.preventDefault();
-        window.open(`/story/${filtered[cursor].id}`, "_self");
+        window.open(`${base}/${filtered[cursor].id}`, "_self");
       } else if (e.key === "s" && cursor >= 0 && filtered[cursor]) {
         e.preventDefault();
         toggleSaved(filtered[cursor].id);
@@ -153,7 +154,7 @@ export function NewsStream({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [cursor, filtered, toggleSaved]);
+  }, [cursor, filtered, toggleSaved, base]);
 
   let currentBucket = "";
 
@@ -279,7 +280,7 @@ export function NewsStream({
                       ref={(el) => {
                         rowRefs.current[i] = el;
                       }}
-                      href={`/story/${item.id}`}
+                      href={`${base}/${item.id}`}
                       onFocus={() => setCursor(i)}
                       className={`group block outline-none ${
                         cursor === i ? "ring-2 ring-accent ring-offset-2 ring-offset-paper" : ""
