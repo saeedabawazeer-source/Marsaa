@@ -21,7 +21,9 @@ function arabicEquivalent(pathname: string): string {
     pathname.startsWith("/article/") ||
     pathname.startsWith("/category/") ||
     pathname.startsWith("/story/") ||
-    pathname === "/game"
+    pathname === "/game" ||
+    pathname === "/sudoku" ||
+    pathname === "/puzzles"
   ) {
     return `/ar${pathname}`;
   }
@@ -31,15 +33,20 @@ function arabicEquivalent(pathname: string): string {
 export function Nav() {
   const pathname = usePathname();
   const arHref = arabicEquivalent(pathname);
+
   return (
-    <nav className="border-b-4 border-inkBorder bg-paper px-4 py-3 sm:px-6 sm:py-4">
-      <div className="flex items-center justify-between gap-3">
-        <Link href="/" className="flex items-center gap-2 sm:gap-2.5">
-          <Submark size={36} className="sm:hidden" />
+    <nav className="border-b-4 border-inkBorder bg-paper">
+      <div className="flex items-center justify-between gap-2 px-3 py-2.5 sm:px-6 sm:py-4">
+        <Link href="/" className="flex min-w-0 items-center gap-2 sm:gap-2.5">
+          <Submark size={34} className="sm:hidden" />
           <Submark size={42} className="hidden sm:block" />
-          <span>
-            <span className="block font-display text-xl font-bold leading-none tracking-tight sm:text-2xl">Marsa</span>
-            <span className="hidden font-mono text-[11px] uppercase tracking-wider text-teal-dark sm:block">MENA business, from Jeddah</span>
+          <span className="min-w-0">
+            <span className="block font-display text-lg font-bold leading-none tracking-tight sm:text-2xl">
+              Marsa
+            </span>
+            <span className="hidden font-mono text-[11px] uppercase tracking-wider text-teal-dark sm:block">
+              MENA business, from Jeddah
+            </span>
           </span>
         </Link>
 
@@ -50,54 +57,69 @@ export function Nav() {
               {l.label}
             </Link>
           ))}
-          {/* The five desks are the taxonomy; the puzzle is not a sixth desk,
-              so it sits apart from them rather than pretending to be one. */}
+          {/* The five desks are the taxonomy; the puzzles are not a sixth desk,
+              so they sit apart from them rather than pretending to be one. */}
           <Link
-            href="/game"
+            href="/puzzles"
             className="rounded-full border-2 border-inkBorder bg-accent px-2.5 py-0.5 font-mono text-[11px] font-bold uppercase tracking-wide transition hover:-translate-y-0.5"
           >
-            Daily ✦
+            Puzzles ✦
           </Link>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+          {/* Was `hidden sm:block` — on a phone there was no way to reach the
+              Arabic edition from the bar at all, which is not what 1:1
+              bilingual parity means. Now always present, sized to the 44px
+              tap floor. */}
           <Link
             href={arHref}
-            className="hidden rounded border-2 border-inkBorder px-2 py-1.5 font-mono text-xs font-bold sm:block"
+            className="flex h-11 min-w-[44px] items-center justify-center rounded border-2 border-inkBorder px-2 font-mono text-xs font-bold"
             title="العربية"
           >
-            العربية
+            ع
+            <span className="hidden sm:inline">ربية</span>
           </Link>
-          {/* Was an inert <button>: the most prominent element above the fold
-              did nothing at all when clicked. It now jumps to the real signup. */}
           <Link
             href="/#brief"
-            className="rounded border-[3px] border-inkBorder bg-accent px-3 py-1.5 text-xs font-bold shadow-md transition hover:-translate-x-px hover:-translate-y-px hover:shadow-lg active:translate-x-px active:translate-y-px active:shadow-sm sm:px-4 sm:py-2 sm:text-sm"
+            className="flex h-11 items-center rounded border-[3px] border-inkBorder bg-accent px-3 text-xs font-bold shadow-md transition hover:-translate-x-px hover:-translate-y-px hover:shadow-lg active:translate-x-px active:translate-y-px active:shadow-sm sm:px-4 sm:text-sm"
           >
             Subscribe
           </Link>
         </div>
       </div>
 
-      {/* Mobile menu — zero-JS <details>/<summary>, no client component needed */}
-      <details className="mt-3 md:hidden">
-        <summary className="flex cursor-pointer list-none items-center gap-1.5 text-sm font-bold [&::-webkit-details-marker]:hidden">
-          <span aria-hidden="true">☰</span> Menu
-        </summary>
-        <div className="mt-3 flex flex-col gap-3 border-t-2 border-ink pt-3 text-sm font-medium">
-          {LINKS.map((l) => (
-            <Link key={l.href} href={l.href} className="border-b-2 border-transparent pb-1 hover:border-accent">
+      {/* Mobile: a real horizontal desk rail instead of a collapsed menu.
+          The old <details> hid every section behind a text-sized ☰ that missed
+          the 44px tap floor, and pushed the page down when opened. A scrolling
+          rail keeps all five desks plus Puzzles one thumb-tap away and costs no
+          vertical space. */}
+      <div className="flex items-stretch gap-2 overflow-x-auto border-t-2 border-ink px-3 py-2 [-ms-overflow-style:none] [scrollbar-width:none] md:hidden [&::-webkit-scrollbar]:hidden">
+        {LINKS.map((l) => {
+          const active = pathname === l.href;
+          return (
+            <Link
+              key={l.href}
+              href={l.href}
+              className={`flex h-9 shrink-0 items-center whitespace-nowrap rounded-full border-2 border-inkBorder px-3 font-mono text-[11px] font-bold uppercase tracking-wide transition active:translate-y-px ${
+                active ? "bg-teal text-paper" : "bg-white text-ink"
+              }`}
+            >
               {l.label}
             </Link>
-          ))}
-          <Link href="/game" className="border-b-2 border-transparent pb-1 font-bold hover:border-accent">
-            Marsa Daily ✦
-          </Link>
-          <Link href={arHref} className="border-b-2 border-transparent pb-1 hover:border-accent">
-            العربية
-          </Link>
-        </div>
-      </details>
+          );
+        })}
+        <Link
+          href="/puzzles"
+          className={`flex h-9 shrink-0 items-center whitespace-nowrap rounded-full border-2 border-inkBorder px-3 font-mono text-[11px] font-bold uppercase tracking-wide transition active:translate-y-px ${
+            pathname === "/puzzles" || pathname === "/game" || pathname === "/sudoku"
+              ? "bg-accent-dark text-paper"
+              : "bg-accent text-ink"
+          }`}
+        >
+          Puzzles ✦
+        </Link>
+      </div>
     </nav>
   );
 }
