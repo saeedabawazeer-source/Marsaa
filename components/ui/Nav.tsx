@@ -17,7 +17,12 @@ const LINKS = [
 // and /article/slug → /ar/article/slug. Real 1:1 parity means the switch has
 // to land you on the same story, not force you back to the top.
 function arabicEquivalent(pathname: string): string {
-  if (pathname.startsWith("/article/") || pathname.startsWith("/category/")) {
+  if (
+    pathname.startsWith("/article/") ||
+    pathname.startsWith("/category/") ||
+    pathname.startsWith("/story/") ||
+    pathname === "/game"
+  ) {
     return `/ar${pathname}`;
   }
   return "/ar";
@@ -39,12 +44,20 @@ export function Nav() {
         </Link>
 
         {/* Desktop nav links */}
-        <div className="hidden flex-wrap gap-5 text-sm font-medium md:flex">
+        <div className="hidden flex-wrap items-center gap-5 text-sm font-medium md:flex">
           {LINKS.map((l) => (
             <Link key={l.href} href={l.href} className="border-b-2 border-transparent pb-1 hover:border-accent">
               {l.label}
             </Link>
           ))}
+          {/* The five desks are the taxonomy; the puzzle is not a sixth desk,
+              so it sits apart from them rather than pretending to be one. */}
+          <Link
+            href="/game"
+            className="rounded-full border-2 border-inkBorder bg-accent px-2.5 py-0.5 font-mono text-[11px] font-bold uppercase tracking-wide transition hover:-translate-y-0.5"
+          >
+            Daily ✦
+          </Link>
         </div>
 
         <div className="flex items-center gap-2">
@@ -77,6 +90,9 @@ export function Nav() {
               {l.label}
             </Link>
           ))}
+          <Link href="/game" className="border-b-2 border-transparent pb-1 font-bold hover:border-accent">
+            Marsa Daily ✦
+          </Link>
           <Link href={arHref} className="border-b-2 border-transparent pb-1 hover:border-accent">
             العربية
           </Link>
