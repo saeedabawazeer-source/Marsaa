@@ -1,36 +1,41 @@
 /**
- * Saudi market data, via SAHMK.
+ * Saudi market data, via SAHMK (Tadawul-licensed).
  *
- * SAHMK is Tadawul-licensed, which matters: the previous ticker was a set of
- * hardcoded strings drifting on a timer under a badge that said LIVE, and no
- * amount of styling makes invented prices acceptable on a business site. These
- * are real, licensed, exchange-sourced numbers.
+ * ── History, because it explains the shape of this file ────────────────────
+ * v1 of the ticker was hardcoded strings drifting on a timer under a badge
+ * reading LIVE. v2 replaced it with a real SAHMK call — but written against a
+ * guessed response shape (`{tasi: {value}, gainers: []}`) that does not exist.
+ * Every request silently failed the `ticks.length < 2` check and fell back, so
+ * the live site showed INDICATIVE with a frozen TASI even though the key was
+ * set correctly. This version is written against the documented schema:
  *
- * ── The request budget is the whole design constraint ──────────────────────
- * The free developer plan allows **100 requests per day**. A page revalidating
- * every 5 minutes burns 288 calls on a single endpoint — the quota would be
- * gone before mid-morning and the ticker would silently die every day around
- * 10am, which is worse than no ticker at all.
+ *   GET /market/summary/?index=TASI
+ *     → { index, is_delayed, timestamp, index_value, index_change,
+ *         index_change_percent, total_volume, advancing, declining,
+ *         unchanged, market_mood }
  *
- * So this module makes exactly ONE call per refresh (the market summary, not a
- * quote per symbol) and the pages that use it revalidate on a 15-minute window:
+ *   GET /market/gainers/?limit=6&index=TASI
+ *     → { index, is_delayed, gainers: [{ symbol, name, name_en, price,
+ *         change, change_percent, volume, updated_at }], count }
  *
- *     4 calls/hour × 24 = 96 requests/day, inside the 100 limit.
+ * ── The request budget is the design constraint ────────────────────────────
+ * Free plan = 100 requests/day. This module makes TWO calls per refresh
+ * (index summary + gainers) on a 30-minute window:
  *
- * 15 minutes is also exactly the delay on the free tier's prices, so caching
- * for that long costs nothing in freshness — we are never showing anything more
- * stale than SAHMK is willing to give us.
+ *     2 calls × 48 refreshes/day = 96 requests/day, inside the 100 limit.
+ *
+ * That is the whole budget. Adding NOMU as a third call would be 144/day and
+ * the ticker would die every afternoon. If you want NOMU, either drop gainers
+ * or move to the Starter plan — do not just add the call.
  *
  * ── Licensing ──────────────────────────────────────────────────────────────
- * SAHMK's developer terms say the developer plans are "intended for
- * development, internal tools, and small-scale applications", and that
- * "large-scale public market data platforms, commercial display services, or
- * data redistribution may require an enterprise agreement". Marsa displaying a
- * ticker publicly sits near that line. Fine while this is small; talk to them
- * before it is not. Reselling the data or re-exposing it as a feed is out.
- *
- * That is also why nothing here is proxied to the browser as raw JSON — the
- * data is rendered server-side into the page, never re-served as an API.
+ * SAHMK's terms: developer plans are "intended for development, internal
+ * tools, and small-scale applications", and "large-scale public market data
+ * platforms, commercial display services, or data redistribution may require
+ * an enterprise agreement". A public ticker sits near that line — fine while
+ * Marsa is small, worth a conversation with them before it is not. Reselling
+ * or re-exposing the data as a feed is not permitted, which is why nothing
+ * here is proxied to the browser as raw JSON.
  */
 
 import type { MarketTick } from "./types";
@@ -38,44 +43,58 @@ import { getGlobalTicks } from "./globalTicks";
 
 const BASE = process.env.SAHMK_BASE_URL ?? "https://api.sahmk.sa/api/v1";
 
+/** 30 minutes. See the request-budget note above before changing this. */
+const REVALIDATE = 1800;
+
 export interface MarketSnapshot {
   ticks: MarketTick[];
-  /** True when the numbers came from SAHMK rather than the static fallback. */
+  /** True when Tadawul numbers came from SAHMK rather than a static level. */
   live: boolean;
   delayed: boolean;
   fetchedAt: string;
+  /** SAHMK's own read on breadth — "Bullish" / "Bearish" etc. Null if absent. */
+  mood: string | null;
+  advancing: number | null;
+  declining: number | null;
 }
 
 /**
- * Shown when no key is configured or SAHMK is unreachable.
- *
- * These are clearly-labelled reference levels, not a simulated feed: they do
- * not move, they are marked indicative in the UI, and the pegged riyal sits
- * still because it is pegged. A frozen honest number beats a moving invented
- * one.
+ * The riyal's peg is a fact, not a quote: SAMA has held 3.7500 to the dollar
+ * since 1986. It is the one number safe to render without a feed behind it.
  */
-const FALLBACK: MarketTick[] = [
-  { label: "TASI", value: "11,842.3", direction: "flat" },
-  { label: "Brent", value: "$81.40", direction: "flat" },
-  { label: "USD/SAR", value: "3.7500", direction: "flat" },
-];
+const RIYAL_PEG: MarketTick = { label: "USD/SAR", value: "3.7500", direction: "flat" };
 
-interface SahmkQuote {
+/**
+ * Last-resort levels, shown ONLY when every source failed, and always under an
+ * INDICATIVE badge. Deliberately minimal: an earlier version padded this with a
+ * frozen "Brent $81.40" that kept rendering next to genuinely live values once
+ * SAHMK started working — a fake number wearing a live badge. If we don't have
+ * it, we don't show it.
+ */
+const FALLBACK: MarketTick[] = [RIYAL_PEG];
+
+interface SahmkSummary {
+  index?: string;
+  is_delayed?: boolean;
+  index_value?: number;
+  index_change?: number;
+  index_change_percent?: number;
+  advancing?: number;
+  declining?: number;
+  market_mood?: string;
+}
+
+interface SahmkMover {
   symbol?: string;
   name_en?: string;
-  name?: string;
   price?: number;
   change?: number;
   change_percent?: number;
-  is_delayed?: boolean;
 }
 
-interface SahmkSummary {
-  tasi?: { value?: number; change?: number; change_percent?: number };
-  nomu?: { value?: number; change?: number; change_percent?: number };
-  gainers?: SahmkQuote[];
-  losers?: SahmkQuote[];
+interface SahmkGainers {
   is_delayed?: boolean;
+  gainers?: SahmkMover[];
 }
 
 function direction(change?: number): MarketTick["direction"] {
@@ -87,73 +106,79 @@ function num(n: number, decimals = 2): string {
   return n.toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 }
 
-/**
- * One call, once per revalidate window. Never called per-symbol in a loop —
- * that is how a 100/day budget disappears.
- */
+async function sahmk<T>(path: string, key: string, timeoutMs: number): Promise<T | null> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(`${BASE}${path}`, {
+      signal: controller.signal,
+      headers: { "X-API-Key": key, accept: "application/json" },
+      next: { revalidate: REVALIDATE },
+    });
+    if (!res.ok) return null;
+    return (await res.json()) as T;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function getMarketSnapshot(timeoutMs = 6000): Promise<MarketSnapshot> {
   const key = process.env.SAHMK_API_KEY;
   const fetchedAt = new Date().toISOString();
 
-  // Global context (S&P 500, Nasdaq, gold, WTI, EUR/USD) rides on the same
-  // strip regardless of whether SAHMK answers — it's a separate provider on
-  // a separate budget, so one going down shouldn't take the other with it.
-  const globalTicks = await getGlobalTicks(timeoutMs);
+  // Global context runs on its own key and its own budget, so a SAHMK outage
+  // must not take gold and the dollar crosses down with it, and vice versa.
+  const [globalTicks, summary, movers] = await Promise.all([
+    getGlobalTicks(timeoutMs),
+    key ? sahmk<SahmkSummary>("/market/summary/?index=TASI", key, timeoutMs) : Promise.resolve(null),
+    key ? sahmk<SahmkGainers>("/market/gainers/?limit=6&index=TASI", key, timeoutMs) : Promise.resolve(null),
+  ]);
 
-  if (!key) return { ticks: [...FALLBACK, ...globalTicks], live: false, delayed: true, fetchedAt };
+  const ticks: MarketTick[] = [];
 
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    const res = await fetch(`${BASE}/market/summary/`, {
-      signal: controller.signal,
-      headers: { "X-API-Key": key, accept: "application/json" },
-      // 15 minutes: matches the free tier's price delay and keeps the day's
-      // request count at 96.
-      next: { revalidate: 900 },
+  if (typeof summary?.index_value === "number") {
+    ticks.push({
+      label: "TASI",
+      value: num(summary.index_value, 2),
+      direction: direction(summary.index_change ?? summary.index_change_percent),
     });
-
-    if (!res.ok) return { ticks: [...FALLBACK, ...globalTicks], live: false, delayed: true, fetchedAt };
-
-    const data = (await res.json()) as SahmkSummary;
-    const ticks: MarketTick[] = [];
-
-    if (typeof data.tasi?.value === "number") {
-      ticks.push({
-        label: "TASI",
-        value: num(data.tasi.value, 1),
-        direction: direction(data.tasi.change ?? data.tasi.change_percent),
-      });
-    }
-    if (typeof data.nomu?.value === "number") {
-      ticks.push({
-        label: "NOMU",
-        value: num(data.nomu.value, 1),
-        direction: direction(data.nomu.change ?? data.nomu.change_percent),
-      });
-    }
-
-    // A few movers give the strip something that actually changes during the
-    // session, and they come from the same single request.
-    for (const q of [...(data.gainers ?? []).slice(0, 3), ...(data.losers ?? []).slice(0, 3)]) {
-      if (!q.symbol || typeof q.price !== "number") continue;
-      ticks.push({
-        label: q.symbol,
-        value: num(q.price),
-        direction: direction(q.change ?? q.change_percent),
-      });
-    }
-
-    // The riyal's dollar peg is a fact, not a quote.
-    ticks.push({ label: "USD/SAR", value: "3.7500", direction: "flat" });
-
-    if (ticks.length < 2) return { ticks: [...FALLBACK, ...globalTicks], live: false, delayed: true, fetchedAt };
-
-    return { ticks: [...ticks, ...globalTicks], live: true, delayed: data.is_delayed !== false, fetchedAt };
-  } catch {
-    return { ticks: [...FALLBACK, ...globalTicks], live: false, delayed: true, fetchedAt };
-  } finally {
-    clearTimeout(timer);
   }
+
+  for (const m of movers?.gainers ?? []) {
+    if (!m.symbol || typeof m.price !== "number") continue;
+    ticks.push({
+      label: m.symbol,
+      value: num(m.price),
+      direction: direction(m.change ?? m.change_percent),
+    });
+  }
+
+  const live = ticks.length > 0;
+
+  // The peg belongs next to the Saudi numbers; global crosses follow it.
+  ticks.push(RIYAL_PEG, ...globalTicks);
+
+  if (!live && globalTicks.length === 0) {
+    return {
+      ticks: FALLBACK,
+      live: false,
+      delayed: true,
+      fetchedAt,
+      mood: null,
+      advancing: null,
+      declining: null,
+    };
+  }
+
+  return {
+    ticks,
+    live,
+    delayed: (summary?.is_delayed ?? movers?.is_delayed) !== false,
+    fetchedAt,
+    mood: summary?.market_mood ?? null,
+    advancing: typeof summary?.advancing === "number" ? summary.advancing : null,
+    declining: typeof summary?.declining === "number" ? summary.declining : null,
+  };
 }
