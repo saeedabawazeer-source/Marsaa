@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { NewsItem } from "@/lib/feeds";
 import Link from "next/link";
 import { fmtClock, fmtDay, fmtAgo } from "@/lib/time";
+import { Thumb } from "./Thumb";
 
 /**
  * The reading surface.
@@ -274,6 +275,29 @@ export function NewsStream({
                   >
                     {fmtClock(item.publishedAt)}
                   </time>
+
+                  {/* The wire used to be a wall of grey text, which is a hard
+                      thing to scan and a harder thing to want to come back to.
+                      A 4:3 thumbnail per row gives the eye somewhere to land.
+                      Hidden in compact mode: a reader who asked for density is
+                      asking for headlines per screen, not pictures. */}
+                  {density === "comfortable" && (
+                    <Link
+                      href={`${base}/${item.id}`}
+                      tabIndex={-1}
+                      aria-hidden
+                      className="hidden shrink-0 overflow-hidden rounded border-2 border-inkBorder transition hover:-translate-y-0.5 hover:shadow-[3px_3px_0_0_rgba(20,20,20,0.16)] sm:block"
+                    >
+                      <Thumb
+                        src={item.image}
+                        alt=""
+                        source={isAr ? item.sourceNameAr : item.sourceName}
+                        section={item.section}
+                        sizes="112px"
+                        className="h-[84px] w-[112px]"
+                      />
+                    </Link>
+                  )}
 
                   <div className="min-w-0 flex-1">
                     <Link
