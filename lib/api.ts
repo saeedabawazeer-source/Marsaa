@@ -9,7 +9,7 @@
  *   return res.json();
  */
 
-import type { Article, MarketTick } from "./types";
+import type { Article, MarketTick, WireItem } from "./types";
 
 const MOCK_ARTICLES: Article[] = [
   {
@@ -188,4 +188,99 @@ export async function getArticlesByCategory(category: string): Promise<Article[]
 export async function getMarketTicks(): Promise<MarketTick[]> {
   // TODO(api): replace with a real market-data feed (e.g. Tadawul, a data vendor)
   return MOCK_MARKET_TICKS;
+}
+
+/**
+ * The market wire.
+ *
+ * Each entry carries an offset in minutes rather than a hardcoded timestamp,
+ * and getWire() resolves those offsets against the moment of render. Combined
+ * with the short `revalidate` window on the pages that use it, this means the
+ * wire always shows plausible, current, *moving* times instead of a frozen set
+ * of datestamps that quietly rot after deploy.
+ *
+ * TODO(api): replace MOCK_WIRE with a real feed. The shape a newsroom CMS or a
+ * vendor tape returns maps 1:1 onto WireItem — swap the array for a fetch and
+ * drop the offset arithmetic:
+ *   const res = await fetch(`${process.env.MARSA_API_URL}/wire?limit=12`, { next: { revalidate: 60 } });
+ *   return res.json();
+ */
+const MOCK_WIRE: Array<Omit<WireItem, "at"> & { minsAgo: number }> = [
+  {
+    id: "w1",
+    minsAgo: 8,
+    category: "markets",
+    text: "TASI holds above 11,800 into the afternoon session; banks lead gainers.",
+    textAr: "تاسي يحافظ على مستوى 11,800 نقطة في الجلسة المسائية، والبنوك تتصدر الرابحين.",
+  },
+  {
+    id: "w2",
+    minsAgo: 21,
+    category: "energy",
+    text: "Brent slips below $81.50 as traders position ahead of the OPEC+ review.",
+    textAr: "برنت يتراجع دون 81.50 دولاراً مع ترقب المتعاملين لمراجعة أوبك+.",
+  },
+  {
+    id: "w3",
+    minsAgo: 36,
+    category: "trade",
+    text: "Jeddah Islamic Port reports a second straight month of record container throughput.",
+    textAr: "ميناء جدة الإسلامي يسجل شهراً قياسياً ثانياً على التوالي في مناولة الحاويات.",
+  },
+  {
+    id: "w4",
+    minsAgo: 52,
+    category: "policy",
+    text: "SAMA leaves its repo rate unchanged, tracking the Fed's most recent hold.",
+    textAr: "ساما تبقي على سعر إعادة الشراء دون تغيير، تماشياً مع تثبيت الفيدرالي الأخير.",
+  },
+  {
+    id: "w5",
+    minsAgo: 74,
+    category: "startups",
+    text: "Riyadh fintech licensing round opens; regulator signals a wider sandbox intake.",
+    textAr: "فتح جولة تراخيص التقنية المالية في الرياض، والجهة التنظيمية تشير إلى توسيع البيئة التجريبية.",
+  },
+  {
+    id: "w6",
+    minsAgo: 95,
+    category: "real-estate",
+    text: "NEOM bond sale reported oversubscribed roughly three times on the order book.",
+    textAr: "تقارير عن تغطية طرح سندات نيوم بنحو ثلاثة أضعاف في سجل الأوامر.",
+  },
+  {
+    id: "w7",
+    minsAgo: 128,
+    category: "markets",
+    text: "Tadawul turnover tracking near SAR 4.2bn, broadly in line with the 30-day average.",
+    textAr: "قيمة التداولات في تداول تقترب من 4.2 مليار ريال، متوافقة عموماً مع متوسط 30 يوماً.",
+  },
+  {
+    id: "w8",
+    minsAgo: 165,
+    category: "energy",
+    text: "Aramco confirms its next results date; buyback pace is the line to watch.",
+    textAr: "أرامكو تؤكد موعد نتائجها المقبلة، ووتيرة إعادة الشراء هي البند محل المتابعة.",
+  },
+  {
+    id: "w9",
+    minsAgo: 210,
+    category: "trade",
+    text: "Red Sea Express rotation adds a call, tightening Jeddah–Egypt transit times.",
+    textAr: "خط إكسبريس البحر الأحمر يضيف ميناءً للدورة، ما يقلص زمن العبور بين جدة ومصر.",
+  },
+  {
+    id: "w10",
+    minsAgo: 264,
+    category: "real-estate",
+    text: "Giga-project contractors report continued pull-through in construction-tech spend.",
+    textAr: "مقاولو المشاريع العملاقة يفيدون باستمرار الإنفاق على تقنيات البناء.",
+  },
+];
+
+export async function getWire(now: Date = new Date()): Promise<WireItem[]> {
+  return MOCK_WIRE.map(({ minsAgo, ...rest }) => ({
+    ...rest,
+    at: new Date(now.getTime() - minsAgo * 60_000).toISOString(),
+  }));
 }

@@ -28,3 +28,19 @@ export interface MarketTick {
   value: string;
   direction: "up" | "down" | "flat";
 }
+
+/**
+ * A single line on the market wire — the timestamped one-liners that run down
+ * the front page. These are deliberately NOT links: a wire item is a fact with
+ * a time on it, the same way Argaam's corporate-events strip or Bloomberg's
+ * first-word tape works. Anything that deserves a page of its own is an
+ * Article, not a WireItem.
+ */
+export interface WireItem {
+  id: string;
+  text: string;
+  textAr: string;
+  category: Category;
+  /** ISO datetime, computed at render so the wire is never stale on screen. */
+  at: string;
+}
