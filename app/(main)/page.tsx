@@ -6,6 +6,7 @@ import { NewsStream } from "@/components/ui/NewsStream";
 import { NewsCard } from "@/components/ui/NewsCard";
 import { AdSlot } from "@/components/ui/AdSlot";
 import { SubscribeForm } from "@/components/ui/SubscribeForm";
+import { Thumb } from "@/components/ui/Thumb";
 import { fmtClock, fmtAgo, fmtDay } from "@/lib/time";
 
 /**
@@ -105,7 +106,24 @@ export default async function HomePage() {
                 ))}
               </nav>
 
-              <div className="mt-6 rounded-lg border-2 border-inkBorder bg-white p-3.5 shadow-[0_2px_0_0_rgba(26,26,26,0.9)]">
+              {/* The one thing on this page that is Marsa's own work, so it
+                  gets a real slot rather than a footer link. */}
+              <Link
+                href="/game"
+                className="mt-6 block rounded-lg border-2 border-inkBorder bg-accent p-3.5 shadow-[0_2px_0_0_rgba(26,26,26,0.9)] transition hover:-translate-y-0.5 hover:shadow-[0_5px_0_0_rgba(26,26,26,0.9)]"
+              >
+                <h3 className="mb-1 flex items-center gap-1.5 text-[13px] font-bold leading-snug">
+                  Marsa Daily <span aria-hidden>✦</span>
+                </h3>
+                <p className="text-[12px] leading-relaxed text-ink/75">
+                  Five letters from Gulf business. New word every morning.
+                </p>
+                <span className="mt-2 block font-mono text-[10px] font-bold uppercase tracking-wide underline underline-offset-2">
+                  Play today&rsquo;s →
+                </span>
+              </Link>
+
+              <div className="mt-4 rounded-lg border-2 border-inkBorder bg-white p-3.5 shadow-[0_2px_0_0_rgba(26,26,26,0.9)]">
                 <h3 className="mb-1.5 text-[13px] font-bold leading-snug">Morning brief</h3>
                 <p className="mb-3 text-[12px] leading-relaxed text-gray-600">
                   The Gulf wire, condensed, before the Riyadh open.
@@ -120,8 +138,12 @@ export default async function HomePage() {
             </div>
           </aside>
 
-          {/* Centre — lead, then the grid. */}
-          <main>
+          {/* Centre — lead, then the grid. self-start keeps this column sized
+              to its own content instead of being grid-stretched to match the
+              tallest sibling column, which is what was making the lead card's
+              h-full inflate to ~1800px and visually overrun the wire section
+              below it. */}
+          <main className="self-start">
             {lead ? (
               <>
                 <NewsCard item={lead} now={now} big />
@@ -156,12 +178,28 @@ export default async function HomePage() {
               <ol className="divide-y divide-gray-200 border-y border-gray-200">
                 {latest.map((i) => (
                   <li key={i.id}>
-                    <Link href={`/story/${i.id}`} className="group block py-2.5">
-                      <span className="block text-[13px] font-semibold leading-snug transition group-hover:text-teal-dark">
-                        {i.title}
+                    <Link href={`/story/${i.id}`} className="group flex items-start gap-2.5 py-2.5">
+                      {/* A running list of grey headlines is the least
+                          appetising thing on a news page. A small square per
+                          row costs almost no space and gives the column a
+                          rhythm the eye can follow. */}
+                      <span className="shrink-0 overflow-hidden rounded border border-inkBorder">
+                        <Thumb
+                          src={i.image}
+                          alt=""
+                          source={i.sourceName}
+                          section={i.section}
+                          sizes="52px"
+                          className="h-[52px] w-[52px]"
+                        />
                       </span>
-                      <span className="mt-1 block font-mono text-[10px] uppercase tracking-wide text-gray-400">
-                        {i.sourceName} · {fmtAgo(i.publishedAt, now)}
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-[13px] font-semibold leading-snug transition group-hover:text-teal-dark">
+                          {i.title}
+                        </span>
+                        <span className="mt-1 block font-mono text-[10px] uppercase tracking-wide text-gray-400">
+                          {i.sourceName} · {fmtAgo(i.publishedAt, now)}
+                        </span>
                       </span>
                     </Link>
                   </li>
