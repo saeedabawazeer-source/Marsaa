@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Article } from "@/lib/types";
 import { CoverArt } from "./CoverArt";
 import { CATEGORY_LABELS_AR, DESK_LABELS_AR } from "@/lib/labels";
+import { fmtDay } from "@/lib/time";
 
 const PILL_STYLES: Record<string, string> = {
   markets: "bg-teal text-white",
@@ -47,7 +48,7 @@ export function ArticleCard({ article, big = false, lang = "en" }: { article: Ar
         </h3>
         <p className={`mb-2.5 text-gray-600 ${big ? "text-base" : "text-sm"}`}>{dek}</p>
         <div className="font-mono text-[11px] text-gray-500">
-          {deskLabel}{isAr ? "" : " ·"} {minLabel} · {article.publishedAt}
+          {deskLabel}{isAr ? "" : " ·"} {minLabel} · {fmtDay(article.publishedAt, lang)}
         </div>
       </div>
     </Link>
