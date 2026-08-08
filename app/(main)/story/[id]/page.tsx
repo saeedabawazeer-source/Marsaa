@@ -4,6 +4,7 @@ import { getItemById, getNews } from "@/lib/feeds";
 import { NewsCard } from "@/components/ui/NewsCard";
 import { AdSlot } from "@/components/ui/AdSlot";
 import { SubscribeForm } from "@/components/ui/SubscribeForm";
+import { Thumb } from "@/components/ui/Thumb";
 import { fmtDateline } from "@/lib/time";
 
 /**
@@ -88,16 +89,22 @@ export default async function StoryPage({ params }: { params: { id: string } }) 
 
   return (
     <article>
-      {item.image && (
-        <div className="border-b-4 border-inkBorder bg-ink">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={item.image}
-            alt=""
-            className="mx-auto max-h-[440px] w-full max-w-[1180px] object-cover"
-          />
-        </div>
-      )}
+      {/* Always a hero. Previously this rendered only when item.image existed,
+          so image-less stories opened on a wall of text, and image-present-but-
+          broken stories opened on a black band (the bg-ink behind the <img>).
+          Thumb covers both: a real picture when there is one, a desk-coloured
+          plate carrying the publisher's name when there is not. */}
+      <div className="border-b-4 border-inkBorder">
+        <Thumb
+          src={item.image}
+          alt=""
+          source={item.sourceName}
+          section={item.section}
+          eager
+          sizes="(max-width: 1180px) 100vw, 1180px"
+          className="mx-auto h-[220px] w-full max-w-[1180px] sm:h-[340px] lg:h-[440px]"
+        />
+      </div>
 
       <div className="mx-auto max-w-[70ch] px-5 py-9 sm:px-6 sm:py-12">
         <div className="mb-4 flex flex-wrap items-center gap-2">
