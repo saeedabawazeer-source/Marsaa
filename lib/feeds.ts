@@ -29,7 +29,7 @@
  * platform's vulnerability scan — not worth it for two element shapes.
  */
 
-export type Section = "markets" | "energy" | "trade" | "startups" | "real-estate" | "policy" | "general";
+export type Section = "markets" | "energy" | "real-estate" | "trade" | "policy";
 
 export interface Source {
   id: string;
@@ -38,6 +38,12 @@ export interface Source {
   /** Where the reader ends up if they want the publisher directly. */
   home: string;
   url: string;
+  /**
+   * A hint only. The desk a story lands on is decided per item by classify()
+   * below, because a publisher's "business" feed carries energy, property and
+   * trade stories all mixed together and a reader looking for Energy should
+   * find them.
+   */
   section: Section;
   /**
    * A general-news feed rather than a business desk. These carry Gulf business
@@ -80,98 +86,28 @@ export interface FeedResult {
  * not padding — dedupe below collapses the overlap.
  */
 export const SOURCES: Source[] = [
-  {
-    id: "arabnews-business",
-    name: "Arab News",
-    nameAr: "عرب نيوز",
-    home: "https://www.arabnews.com",
-    url: "https://www.arabnews.com/cat/3/rss.xml",
-    section: "markets",
-  },
-  {
-    id: "arabnews-economy",
-    name: "Arab News",
-    nameAr: "عرب نيوز",
-    home: "https://www.arabnews.com",
-    url: "https://www.arabnews.com/rss.xml",
-    section: "general",
-    broad: true,
-  },
-  {
-    id: "saudigazette-business",
-    name: "Saudi Gazette",
-    nameAr: "سعودي غازيت",
-    home: "https://saudigazette.com.sa",
-    url: "https://saudigazette.com.sa/rssFeed/74",
-    section: "markets",
-  },
-  {
-    id: "khaleejtimes-business",
-    name: "Khaleej Times",
-    nameAr: "خليج تايمز",
-    home: "https://www.khaleejtimes.com",
-    url: "https://www.khaleejtimes.com/rss/business",
-    section: "markets",
-  },
-  {
-    id: "gulfnews-business",
-    name: "Gulf News",
-    nameAr: "غلف نيوز",
-    home: "https://gulfnews.com",
-    url: "https://gulfnews.com/rss?generatorName=business",
-    section: "markets",
-  },
-  {
-    id: "tradearabia-business",
-    name: "TradeArabia",
-    nameAr: "تريد أرابيا",
-    home: "http://www.tradearabia.com",
-    url: "http://www.tradearabia.com/rss/BUS_0.xml",
-    section: "trade",
-  },
-  {
-    id: "tradearabia-energy",
-    name: "TradeArabia",
-    nameAr: "تريد أرابيا",
-    home: "http://www.tradearabia.com",
-    url: "http://www.tradearabia.com/rss/OGN_0.xml",
-    section: "energy",
-  },
-  {
-    id: "tradearabia-construction",
-    name: "TradeArabia",
-    nameAr: "تريد أرابيا",
-    home: "http://www.tradearabia.com",
-    url: "http://www.tradearabia.com/rss/CONS_0.xml",
-    section: "real-estate",
-  },
-  {
-    id: "arabianbusiness",
-    name: "Arabian Business",
-    nameAr: "أرابيان بزنس",
-    home: "https://www.arabianbusiness.com",
-    url: "https://www.arabianbusiness.com/rss.xml",
-    section: "general",
-  },
-  {
-    id: "wam-business",
-    name: "WAM",
-    nameAr: "وام",
-    home: "https://www.wam.ae",
-    url: "https://www.wam.ae/en/feed/rss",
-    section: "policy",
-    broad: true,
-  },
-  {
-    id: "aljazeera-economy",
-    name: "Al Jazeera",
-    nameAr: "الجزيرة",
-    home: "https://www.aljazeera.com",
-    url: "https://www.aljazeera.com/xml/rss/all.xml",
-    section: "general",
-    broad: true,
-  },
+  // --- Saudi desks first. Marsa is a Jeddah publication, so the Kingdom leads
+  // the mix and the wider Gulf fills in around it. ---
+  { id: "arabnews-business", name: "Arab News", nameAr: "عرب نيوز", home: "https://www.arabnews.com", url: "https://www.arabnews.com/cat/3/rss.xml", section: "markets" },
+  { id: "arabnews-saudi", name: "Arab News", nameAr: "عرب نيوز", home: "https://www.arabnews.com", url: "https://www.arabnews.com/cat/1/rss.xml", section: "policy", broad: true },
+  { id: "arabnews-all", name: "Arab News", nameAr: "عرب نيوز", home: "https://www.arabnews.com", url: "https://www.arabnews.com/rss.xml", section: "markets", broad: true },
+  { id: "saudigazette-business", name: "Saudi Gazette", nameAr: "سعودي غازيت", home: "https://saudigazette.com.sa", url: "https://saudigazette.com.sa/rssFeed/74", section: "markets" },
+  { id: "saudigazette-saudi", name: "Saudi Gazette", nameAr: "سعودي غازيت", home: "https://saudigazette.com.sa", url: "https://saudigazette.com.sa/rssFeed/78", section: "policy", broad: true },
+  { id: "spa-en", name: "SPA", nameAr: "واس", home: "https://www.spa.gov.sa", url: "https://www.spa.gov.sa/rss.xml", section: "policy", broad: true },
+  { id: "argaam-en", name: "Argaam", nameAr: "أرقام", home: "https://www.argaam.com", url: "https://www.argaam.com/en/rss", section: "markets" },
+  { id: "alarabiya-business", name: "Al Arabiya", nameAr: "العربية", home: "https://english.alarabiya.net", url: "https://english.alarabiya.net/tools/rss/business", section: "markets" },
+
+  // --- Wider Gulf ---
+  { id: "arabianbusiness", name: "Arabian Business", nameAr: "أرابيان بزنس", home: "https://www.arabianbusiness.com", url: "https://www.arabianbusiness.com/rss.xml", section: "markets" },
+  { id: "khaleejtimes-business", name: "Khaleej Times", nameAr: "خليج تايمز", home: "https://www.khaleejtimes.com", url: "https://www.khaleejtimes.com/rss/business", section: "markets" },
+  { id: "gulfnews-business", name: "Gulf News", nameAr: "غلف نيوز", home: "https://gulfnews.com", url: "https://gulfnews.com/rss?generatorName=business", section: "markets" },
+  { id: "tradearabia-business", name: "TradeArabia", nameAr: "تريد أرابيا", home: "http://www.tradearabia.com", url: "http://www.tradearabia.com/rss/BUS_0.xml", section: "trade" },
+  { id: "tradearabia-energy", name: "TradeArabia", nameAr: "تريد أرابيا", home: "http://www.tradearabia.com", url: "http://www.tradearabia.com/rss/OGN_0.xml", section: "energy" },
+  { id: "tradearabia-construction", name: "TradeArabia", nameAr: "تريد أرابيا", home: "http://www.tradearabia.com", url: "http://www.tradearabia.com/rss/CONS_0.xml", section: "real-estate" },
+  { id: "zawya-en", name: "Zawya", nameAr: "زاوية", home: "https://www.zawya.com", url: "https://www.zawya.com/en/rss", section: "markets" },
+  { id: "aljazeera-all", name: "Al Jazeera", nameAr: "الجزيرة", home: "https://www.aljazeera.com", url: "https://www.aljazeera.com/xml/rss/all.xml", section: "policy", broad: true },
 ];
+
 
 /* ------------------------------------------------------------------ *
  * XML parsing
@@ -363,53 +299,115 @@ async function fetchOne(source: Source, timeoutMs: number): Promise<NewsItem[]> 
 }
 
 /**
- * Relevance gate for general-news feeds.
+ * Desk classification.
  *
- * The first live build proved why this is needed: Al Jazeera's all-news feed
- * publishes far more often than any business desk, so within minutes the front
- * page of a *Gulf business* portal led with Colombian politics, US deportation
- * rulings and a drought in Indonesia. All real, all correctly timestamped, all
- * completely wrong for the reader this exists for.
+ * Sections used to come from whichever feed a story arrived on, which meant an
+ * oil story filed to a publisher's "business" feed landed under Markets and the
+ * Energy desk stayed empty. A reader who clicks Energy wants energy stories, not
+ * whatever a CMS happened to tag. So the desk is decided per item, from the
+ * words in the headline and standfirst.
  *
- * Broad feeds must therefore earn their place per item: the headline or
- * standfirst has to be about business, or about the region. Everything else is
- * dropped. Business-desk feeds skip this entirely — their editors already did
- * this job.
+ * Order matters: the specific desks are tested before the general ones, because
+ * almost every business story mentions money and would otherwise be swallowed by
+ * Markets.
+ */
+const DESK_RULES: Array<{ section: Section; terms: string[] }> = [
+  {
+    section: "energy",
+    terms: ["oil", "crude", "brent", "opec", "petrol", "gas", "lng", "refinery", "refining", "barrel",
+      "solar", "renewable", "wind farm", "wind energy", "hydrogen", "electricity", "power plant",
+      "megawatt", "grid", "aramco", "adnoc", "energy"],
+  },
+  {
+    section: "real-estate",
+    terms: ["real estate", "property", "housing", "resident", "construction", "contractor", "developer",
+      "tower", "villa", "apartment", "mortgage", "cement", "giga-project", "neom", "qiddiya", "roshn",
+      "diriyah", "red sea project", "master plan", "land plot"],
+  },
+  {
+    section: "trade",
+    terms: ["port", "shipping", "shipment", "cargo", "container", "freight", "logistics", "supply chain",
+      "export", "import", "customs", "tariff", "trade", "teu", "airline", "aviation", "airport", "carrier",
+      "tourism", "hospitality", "retail sales", "e-commerce"],
+  },
+  {
+    section: "markets",
+    terms: ["tadawul", "stock", "share", "index", "tasi", "bourse", "exchange", "ipo", "listing", "bond",
+      "sukuk", "dividend", "earnings", "profit", "revenue", "loss", "fund", "pif", "sovereign wealth",
+      "investment", "investor", "valuation", "acquisition", "merger", "stake", "bank", "lender", "loan",
+      "credit", "fintech", "startup", "funding", "venture", "gdp", "inflation", "currency", "riyal"],
+  },
+  {
+    section: "policy",
+    terms: ["ministry", "minister", "regulation", "regulator", "law", "licence", "license", "authority",
+      "cabinet", "government", "budget", "tax", "zatca", "sama", "central bank", "reform", "vision 2030",
+      "agreement", "pact", "summit", "policy", "sanction", "ruling", "decree", "council"],
+  },
+];
+
+function classify(title: string, summary: string, fallback: Section): Section {
+  const hay = `${title} ${summary}`.toLowerCase();
+  for (const rule of DESK_RULES) {
+    if (rule.terms.some((t) => hay.includes(t))) return rule.section;
+  }
+  return fallback;
+}
+
+/**
+ * Relevance gate.
+ *
+ * Two things have to be true for a story to earn a place. It has to be about
+ * business or the economy, and it has to be about the Kingdom or its immediate
+ * neighbourhood. The first live build failed the second test badly — a Gulf
+ * business front page led with Colombian politics and a drought in Indonesia,
+ * because a general news feed simply publishes more often than any business
+ * desk does.
+ *
+ * Saudi Arabia counts on its own. The wider Gulf counts too, but a story has to
+ * be unambiguously business to get in on Gulf terms alone — Marsa is published
+ * from Jeddah and the mix should read that way.
  */
 const BUSINESS_TERMS = [
   "market", "stock", "share", "index", "tadawul", "bourse", "exchange", "investor", "investment",
-  "fund", "ipo", "listing", "bond", "sukuk", "dividend", "earnings", "profit", "revenue", "loss",
+  "fund", "ipo", "listing", "bond", "sukuk", "dividend", "earnings", "profit", "revenue",
   "economy", "economic", "gdp", "inflation", "budget", "deficit", "surplus", "tariff", "trade",
   "export", "import", "oil", "crude", "brent", "opec", "gas", "lng", "energy", "refinery", "barrel",
-  "bank", "lender", "loan", "credit", "rate", "central bank", "currency", "riyal", "dirham", "dollar",
+  "bank", "lender", "loan", "credit", "central bank", "currency", "riyal", "dirham",
   "aramco", "sabic", "pif", "adnoc", "mubadala", "neom", "acwa", "emaar", "sovereign wealth",
   "startup", "fintech", "venture", "funding", "valuation", "acquisition", "merger", "deal", "stake",
   "property", "real estate", "construction", "contract", "project", "port", "logistics", "shipping",
   "airline", "aviation", "tourism", "retail", "company", "firm", "ceo", "business", "billion", "million",
+  "regulation", "licence", "license", "ministry", "authority", "tax", "reform", "vision 2030",
 ];
 
-const REGION_TERMS = [
-  "saudi", "riyadh", "jeddah", "makkah", "mecca", "medina", "dammam", "neom", "kingdom",
-  "uae", "emirates", "dubai", "abu dhabi", "sharjah", "ajman",
-  "qatar", "doha", "kuwait", "bahrain", "manama", "oman", "muscat",
-  "gulf", "gcc", "mena", "middle east", "arab", "red sea", "egypt", "cairo", "jordan", "iraq",
+const SAUDI_TERMS = [
+  "saudi", "riyadh", "jeddah", "makkah", "mecca", "madinah", "medina", "dammam", "khobar", "yanbu",
+  "neom", "qiddiya", "diriyah", "roshn", "tadawul", "tasi", "aramco", "sabic", "pif", "sama", "zatca",
+  "kingdom", "ksa", "vision 2030", "red sea",
 ];
 
-function isRelevant(item: NewsItem): boolean {
+const GULF_TERMS = [
+  "uae", "emirates", "dubai", "abu dhabi", "sharjah", "qatar", "doha", "kuwait", "bahrain", "manama",
+  "oman", "muscat", "gulf", "gcc", "opec",
+];
+
+function isRelevant(item: { title: string; summary: string }, broad: boolean): boolean {
   const hay = `${item.title} ${item.summary}`.toLowerCase();
   const business = BUSINESS_TERMS.some((t) => hay.includes(t));
   if (!business) return false;
-  return REGION_TERMS.some((t) => hay.includes(t));
+
+  const saudi = SAUDI_TERMS.some((t) => hay.includes(t));
+  if (saudi) return true;
+
+  // Gulf-but-not-Saudi is welcome from a business desk, and only from a
+  // business desk — a general feed needs the Kingdom in it to qualify.
+  return !broad && GULF_TERMS.some((t) => hay.includes(t));
 }
 
-/**
- * No single feed may take more than this share of the page. Without it the
- * most prolific publisher wins on volume rather than relevance, and the portal
- * stops being a survey of the region and becomes a mirror of one newsroom.
- */
-const MAX_PER_SOURCE = 12;
+/** How many of a desk's stories may come from any single publisher. */
+const MAX_PER_SOURCE = 14;
 
-/** Headlines about the same event differ in punctuation and house style. */
+/** Headlines about the same event differ in punctuation and house style. *//** Headlines about the same event differ in punctuation and house style. */
 function dedupeKey(title: string): string {
   return title
     .toLowerCase()
@@ -423,9 +421,10 @@ function dedupeKey(title: string): string {
 export async function getNews(
   { sections, limit = 60, timeoutMs = 6000 }: { sections?: Section[]; limit?: number; timeoutMs?: number } = {},
 ): Promise<FeedResult> {
-  const chosen = sections?.length
-    ? SOURCES.filter((s) => sections.includes(s.section) || s.section === "general")
-    : SOURCES;
+  // Always read every source: a desk is a view over the classified stream, not
+  // a subset of feeds, so Energy stories filed to a general business feed still
+  // reach the Energy page.
+  const chosen = SOURCES;
 
   const settled = await Promise.all(
     chosen.map(async (source) => ({ source, items: await fetchOne(source, timeoutMs) })),
@@ -442,23 +441,24 @@ export async function getNews(
       continue;
     }
 
-    for (const item of items) {
-      if (source.broad && !isRelevant(item)) continue;
+    for (const raw of items) {
+      if (!isRelevant(raw, Boolean(source.broad))) continue;
 
       const used = perSource.get(source.id) ?? 0;
       if (used >= MAX_PER_SOURCE) continue;
 
-      const key = dedupeKey(item.title);
+      const key = dedupeKey(raw.title);
       if (!key || seen.has(key)) continue;
 
       seen.add(key);
       perSource.set(source.id, used + 1);
-      merged.push(item);
+      merged.push({ ...raw, section: classify(raw.title, raw.summary, source.section) });
     }
   }
 
   merged.sort((a, b) => (a.publishedAt < b.publishedAt ? 1 : -1));
-  const items = merged.slice(0, limit);
+  const scoped = sections?.length ? merged.filter((i) => sections.includes(i.section)) : merged;
+  const items = scoped.slice(0, limit);
 
   // Report the sources actually represented on the page, not the ones that
   // merely answered — a name in the "reading" line that has no headline under
