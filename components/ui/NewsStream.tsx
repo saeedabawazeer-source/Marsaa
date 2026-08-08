@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { NewsItem } from "@/lib/feeds";
+import Link from "next/link";
 import { fmtClock, fmtDay, fmtAgo } from "@/lib/time";
 
 /**
@@ -141,7 +142,7 @@ export function NewsStream({
         });
       } else if (e.key === "o" && cursor >= 0 && filtered[cursor]) {
         e.preventDefault();
-        window.open(filtered[cursor].link, "_blank", "noopener,noreferrer");
+        window.open(`/story/${filtered[cursor].id}`, "_self");
       } else if (e.key === "s" && cursor >= 0 && filtered[cursor]) {
         e.preventDefault();
         toggleSaved(filtered[cursor].id);
@@ -274,13 +275,11 @@ export function NewsStream({
                   </time>
 
                   <div className="min-w-0 flex-1">
-                    <a
+                    <Link
                       ref={(el) => {
                         rowRefs.current[i] = el;
                       }}
-                      href={item.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                      href={`/story/${item.id}`}
                       onFocus={() => setCursor(i)}
                       className={`group block outline-none ${
                         cursor === i ? "ring-2 ring-accent ring-offset-2 ring-offset-paper" : ""
@@ -296,14 +295,14 @@ export function NewsStream({
                         )}
                         {item.title}
                         <span aria-hidden className="ml-1 font-mono text-[11px] text-gray-400 group-hover:text-teal-dark">
-                          ↗
+                          →
                         </span>
                       </span>
 
                       {density === "comfortable" && item.summary && (
                         <span className="mt-1 block text-[13px] leading-relaxed text-gray-600">{item.summary}</span>
                       )}
-                    </a>
+                    </Link>
 
                     <div className="mt-1 flex items-center gap-2 font-mono text-[10px] uppercase tracking-wide text-gray-500">
                       <span className="font-bold text-ink">{isAr ? item.sourceNameAr : item.sourceName}</span>
@@ -331,8 +330,8 @@ export function NewsStream({
 
       <p className="mt-5 font-mono text-[10px] leading-relaxed text-gray-500">
         {isAr
-          ? "مرسى بوابة إخبارية. العناوين والملخصات من الناشرين، وكل رابط يفتح الخبر في موقع مصدره. اختصارات: j / k للتنقل، o للفتح، s للحفظ."
-          : "Marsa is a portal. Headlines and standfirsts belong to the publishers listed, and every link opens the story on their site. Keys: j / k to move, o to open, s to save, / to search."}
+          ? "مرسى بوابة إخبارية. العناوين والصور تعود لناشريها، ويفتح النص الكامل في موقع المصدر. اختصارات: j / k للتنقل، o للفتح، s للحفظ."
+          : "Marsa is a portal. Headlines, summaries and pictures belong to the publishers named; the full article opens on their site. Keys: j / k to move, o to open, s to save, / to search."}
       </p>
     </section>
   );
