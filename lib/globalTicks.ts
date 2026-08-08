@@ -1,38 +1,47 @@
 /**
  * Global market context, via Twelve Data.
  *
- * SAHMK covers Tadawul. It has no reason to carry the S&P 500, Nasdaq, gold,
- * crude, or the dollar's cross rates — but a Gulf business reader checking
- * markets at 7am wants those on the same strip. Twelve Data fills that gap.
+ * SAHMK covers Tadawul and has no reason to carry Wall Street, gold, or the
+ * dollar crosses — but a Gulf business reader checking markets at 7am wants
+ * those on the same strip. Twelve Data fills that gap.
  *
- * ── The request budget is the same kind of constraint as SAHMK ─────────────
- * Free plan: 800 API credits/day, 8 credits/minute. A `/quote` call with N
- * symbols in one request costs N credits (not 1) — Twelve Data bills per
- * symbol, not per HTTP call. Five symbols on a 15-minute revalidate window:
+ * ── Why these symbols and not the obvious ones ─────────────────────────────
+ * The first version asked for SPX, IXIC and WTI/USD. Gold and EUR/USD came
+ * back; the other three silently did not, because index and commodity feeds
+ * are licensed products that the free plan does not carry — forex, crypto,
+ * US equities and ETFs are what it does carry.
  *
- *     5 symbols x 4 calls/hour x 24h = 480 credits/day, inside the 800 limit.
+ * So the index exposure here is via the ETFs that track them, and they are
+ * labelled with their own tickers rather than dressed up as the index. SPY is
+ * not the S&P 500; it is a fund that tracks it, and the two do not print the
+ * same number. Anyone who reads a ticker strip knows SPY, QQQ and BNO on
+ * sight, and mislabelling them to look more impressive is exactly the kind of
+ * thing this codebase keeps having to undo.
  *
- * That leaves headroom; it is not pushed to the ceiling on purpose, since
- * this budget is shared with anything else built on the same key later.
+ * ── Budget ─────────────────────────────────────────────────────────────────
+ * Free plan: 800 credits/day, 8/minute. A `/quote` call with N symbols costs
+ * N credits — Twelve Data bills per symbol, not per HTTP request. Six symbols
+ * on the same 30-minute window as SAHMK:
  *
- * Same rule as SAHMK: never proxy the raw response to the browser, never
- * loop per-symbol requests (that is how a per-minute credit cap gets hit),
- * and degrade to nothing (not a fabricated number) when unkeyed or failing.
+ *     6 symbols × 48 refreshes/day = 288 credits/day, inside the 800 limit.
+ *
+ * Symbols that fail are skipped, never substituted or invented.
  */
 
 import type { MarketTick } from "./types";
 
 const BASE = "https://api.twelvedata.com";
 
-// Five symbols, chosen for what a Gulf business reader actually checks
-// alongside Tadawul: the two US benchmarks, gold, Brent crude, and the euro
-// cross (the dollar leg against the riyal is already the fixed peg above).
+/** Matches lib/market.ts. See the budget note above before changing. */
+const REVALIDATE = 1800;
+
 const SYMBOLS: { symbol: string; label: string }[] = [
-  { symbol: "SPX", label: "S&P 500" },
-  { symbol: "IXIC", label: "Nasdaq" },
+  { symbol: "SPY", label: "SPY" }, // S&P 500 tracker
+  { symbol: "QQQ", label: "QQQ" }, // Nasdaq 100 tracker
+  { symbol: "BNO", label: "BNO" }, // Brent crude tracker
   { symbol: "XAU/USD", label: "Gold" },
-  { symbol: "WTI/USD", label: "WTI" },
   { symbol: "EUR/USD", label: "EUR/USD" },
+  { symbol: "GBP/USD", label: "GBP/USD" },
 ];
 
 interface TwelveDataQuote {
@@ -40,6 +49,7 @@ interface TwelveDataQuote {
   close?: string;
   percent_change?: string;
   status?: string;
+  code?: number;
 }
 
 function direction(pct?: string): MarketTick["direction"] {
@@ -55,8 +65,8 @@ function fmt(close?: string): string | null {
 }
 
 /**
- * One batched call, once per revalidate window. Returns [] (never fabricated
- * data) if unkeyed, timed out, or the response doesn't parse.
+ * One batched call per refresh. Returns [] — never fabricated data — if the
+ * key is unset, the request fails, or the response does not parse.
  */
 export async function getGlobalTicks(timeoutMs = 6000): Promise<MarketTick[]> {
   const key = process.env.TWELVEDATA_API_KEY;
@@ -67,31 +77,30 @@ export async function getGlobalTicks(timeoutMs = 6000): Promise<MarketTick[]> {
 
   try {
     const symbolParam = SYMBOLS.map((s) => s.symbol).join(",");
-    const res = await fetch(
-      `${BASE}/quote?symbol=${encodeURIComponent(symbolParam)}&apikey=${key}`,
-      {
-        signal: controller.signal,
-        // 15 minutes: same cadence as SAHMK, keeps the day's credit spend at
-        // roughly 480 rather than chasing a real-time refresh this budget
-        // can't afford.
-        next: { revalidate: 900 },
-      },
-    );
+    const res = await fetch(`${BASE}/quote?symbol=${encodeURIComponent(symbolParam)}&apikey=${key}`, {
+      signal: controller.signal,
+      next: { revalidate: REVALIDATE },
+    });
 
     if (!res.ok) return [];
 
     const data = (await res.json()) as Record<string, TwelveDataQuote> | TwelveDataQuote;
 
-    // Twelve Data returns one flat quote object for a single symbol and a
-    // symbol-keyed map for multiple — normalise to an array either way.
-    const quotes: TwelveDataQuote[] =
-      "symbol" in data && typeof (data as TwelveDataQuote).symbol === "string"
-        ? [data as TwelveDataQuote]
-        : Object.values(data as Record<string, TwelveDataQuote>);
+    // Twelve Data returns a flat quote object for one symbol and a symbol-keyed
+    // map for several. Normalise to a lookup either way.
+    const bySymbol = new Map<string, TwelveDataQuote>();
+    if (data && typeof (data as TwelveDataQuote).symbol === "string") {
+      const q = data as TwelveDataQuote;
+      bySymbol.set(q.symbol as string, q);
+    } else {
+      for (const [k, v] of Object.entries(data as Record<string, TwelveDataQuote>)) {
+        if (v && typeof v === "object") bySymbol.set(v.symbol ?? k, v);
+      }
+    }
 
     const ticks: MarketTick[] = [];
     for (const meta of SYMBOLS) {
-      const q = quotes.find((q) => q.symbol === meta.symbol);
+      const q = bySymbol.get(meta.symbol);
       if (!q || q.status === "error") continue;
       const value = fmt(q.close);
       if (!value) continue;
