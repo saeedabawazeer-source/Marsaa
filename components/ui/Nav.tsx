@@ -8,11 +8,8 @@ const LINKS = [
   { href: "/category/markets", label: "Markets" },
   { href: "/category/energy", label: "Energy" },
   { href: "/category/real-estate", label: "Real Estate" },
-  { href: "/category/startups", label: "Startups" },
   { href: "/category/trade", label: "Trade" },
-  // Policy is deliberately absent: the desk has never filed a policy story, and
-  // a top-level nav link that lands on "no stories yet" spends a reader's click
-  // to tell them the section is empty. It goes back the day it has copy.
+  { href: "/category/policy", label: "Policy" },
 ];
 
 // Deep-links the language switch to the Arabic equivalent of the current page
