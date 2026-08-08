@@ -74,6 +74,10 @@ export interface FeedResult {
   ok: string[];
   /** Sources that did not, so the UI can be honest about partial coverage. */
   failed: string[];
+  /** Per-source outcome with the failure reason kept. Read at /api/health. */
+  statuses: SourceStatus[];
+  /** How many stories the licensed API returned before filtering. */
+  newsApiItems: number;
   fetchedAt: string;
 }
 
@@ -274,7 +278,29 @@ export function parseFeed(xml: string, source: Source): NewsItem[] {
  * Fetching
  * ------------------------------------------------------------------ */
 
-async function fetchOne(source: Source, timeoutMs: number): Promise<NewsItem[]> {
+/** What a single source did on the last fetch. Surfaced at /api/health. */
+export interface SourceStatus {
+  id: string;
+  name: string;
+  ok: boolean;
+  /** "http 403", "timeout", "empty", "unparsed", or null when fine. */
+  error: string | null;
+  items: number;
+}
+
+/**
+ * One source, with the reason for failure preserved.
+ *
+ * The previous version returned [] for every failure mode — 403, timeout, moved
+ * feed, unparseable XML — which is why the live portal ran on 3 of 16 sources
+ * for days without anything indicating a problem. A silent catch on a network
+ * call is a decision to never find out. The reason now travels with the result
+ * and /api/health prints it.
+ */
+async function fetchOne(
+  source: Source,
+  timeoutMs: number,
+): Promise<{ items: NewsItem[]; error: string | null }> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -282,17 +308,22 @@ async function fetchOne(source: Source, timeoutMs: number): Promise<NewsItem[]> 
       signal: controller.signal,
       headers: {
         // Some publishers reject requests with no UA, and a portal should say
-        // plainly what it is rather than impersonate a browser.
+        // plainly what it is rather than impersonate a browser. Where this earns
+        // a 403, that is a publisher declining to be aggregated — the honest
+        // answer is to ask them, not to disguise the request.
         "user-agent": "MarsaPortal/1.0 (+https://marsa.news; news aggregator)",
         accept: "application/rss+xml, application/atom+xml, application/xml, text/xml;q=0.9, */*;q=0.8",
       },
       next: { revalidate: 300 },
     });
-    if (!res.ok) return [];
+    if (!res.ok) return { items: [], error: `http ${res.status}` };
     const xml = await res.text();
-    return parseFeed(xml, source);
-  } catch {
-    return [];
+    const items = parseFeed(xml, source);
+    if (!items.length) return { items, error: xml.trim() ? "unparsed" : "empty" };
+    return { items, error: null };
+  } catch (e) {
+    const aborted = e instanceof Error && e.name === "AbortError";
+    return { items: [], error: aborted ? "timeout" : "network" };
   } finally {
     clearTimeout(timer);
   }
@@ -339,14 +370,56 @@ const DESK_RULES: Array<{ section: Section; terms: string[] }> = [
   },
   {
     section: "policy",
-    terms: ["ministry", "minister", "regulation", "regulator", "law", "licence", "license", "authority",
-      "cabinet", "government", "budget", "tax", "zatca", "sama", "central bank", "reform", "vision 2030",
-      "agreement", "pact", "summit", "policy", "sanction", "ruling", "decree", "council"],
+    terms: ["ministry", "minister", "regulation", "regulator", "regulatory", "licence", "license",
+      "cabinet", "budget", "tax", "zatca", "sama", "central bank", "reform", "vision 2030",
+      "trade agreement", "trade deal", "economic policy", "fiscal", "monetary", "sanction",
+      "decree", "legislation", "compliance", "antitrust", "subsidy", "privatisation", "privatization"],
   },
 ];
 
+/**
+ * Hard veto.
+ *
+ * Checked before anything else and never overridden. Everything here is a
+ * category Marsa does not cover — the point of a business desk is that a reader
+ * can look at it and know what they are getting.
+ *
+ * This exists because the relevance gate alone kept letting war coverage lead
+ * the front page. "Iran war live: Trilateral Mecca defence pact signed" cleared
+ * every test: "mecca" is a Saudi term and "pact" and "deal" were business terms.
+ * "911 centers receive 2.7 million calls in July" cleared it too, because
+ * "million" was on the business list. No amount of tuning the positive signals
+ * fixes that; the negative ones have to be stated.
+ */
+const EXCLUDE_TERMS = [
+  // Conflict and security
+  "war", "strike on", "airstrike", "missile", "drone attack", "troops", "militant", "militia",
+  "killed", "death toll", "casualt", "wounded", "hostage", "ceasefire", "truce", "offensive",
+  "terror", "insurgen", "warplane", "shelling", "bombard", "gunmen", "defence pact", "defense pact",
+  "military", "army", "navy ", "warship", "combat",
+  // Crime and courts (non-corporate)
+  "arrest", "jailed", "sentenced to", "murder", "homicide", "assault", "kidnap", "smuggl",
+  "drug traffick", "executed",
+  // Sport
+  "football", "world cup", "premier league", "formula 1", "match against", "goalkeeper", "striker scored",
+  // Consumer health scares and disasters
+  "outbreak", "epidemic", "pandemic", "recall of", "food poisoning", "earthquake", "flood",
+  "wildfire", "hurricane", "crash landing", "plane crash",
+];
+
+function isExcluded(hay: string): boolean {
+  return EXCLUDE_TERMS.some((t) => hay.includes(t));
+}
+
 function classify(title: string, summary: string, fallback: Section): Section {
-  const hay = `${title} ${summary}`.toLowerCase();
+  // The headline is weighted first. A story is about whatever its headline says
+  // it is about; the standfirst often name-drops adjacent topics ("...as oil
+  // prices steadied") and was pulling stories onto the wrong desk.
+  const head = title.toLowerCase();
+  for (const rule of DESK_RULES) {
+    if (rule.terms.some((t) => head.includes(t))) return rule.section;
+  }
+  const hay = `${head} ${summary.toLowerCase()}`;
   for (const rule of DESK_RULES) {
     if (rule.terms.some((t) => hay.includes(t))) return rule.section;
   }
@@ -367,16 +440,33 @@ function classify(title: string, summary: string, fallback: Section): Section {
  * be unambiguously business to get in on Gulf terms alone — Marsa is published
  * from Jeddah and the mix should read that way.
  */
-const BUSINESS_TERMS = [
-  "market", "stock", "share", "index", "tadawul", "bourse", "exchange", "investor", "investment",
-  "fund", "ipo", "listing", "bond", "sukuk", "dividend", "earnings", "profit", "revenue",
-  "economy", "economic", "gdp", "inflation", "budget", "deficit", "surplus", "tariff", "trade",
-  "export", "import", "oil", "crude", "brent", "opec", "gas", "lng", "energy", "refinery", "barrel",
-  "bank", "lender", "loan", "credit", "central bank", "currency", "riyal", "dirham",
-  "aramco", "sabic", "pif", "adnoc", "mubadala", "neom", "acwa", "emaar", "sovereign wealth",
-  "startup", "fintech", "venture", "funding", "valuation", "acquisition", "merger", "deal", "stake",
-  "property", "real estate", "construction", "contract", "project", "port", "logistics", "shipping",
-  "airline", "aviation", "tourism", "retail", "company", "firm", "ceo", "business", "billion", "million",
+/**
+ * Unambiguous business vocabulary. A single one of these is enough — no
+ * general-news story says "sukuk" or "Tadawul" by accident.
+ */
+const STRONG_BUSINESS_TERMS = [
+  "tadawul", "tasi", "bourse", "stock market", "share price", "shareholder", "ipo", "listing",
+  "sukuk", "bond issue", "dividend", "earnings", "quarterly profit", "net profit", "revenue",
+  "gdp", "inflation", "deficit", "surplus", "tariff", "central bank", "interest rate",
+  "opec", "crude", "brent", "barrel", "refinery", "lng", "pipeline",
+  "aramco", "sabic", "pif", "adnoc", "mubadala", "acwa", "emaar", "sovereign wealth fund",
+  "fintech", "venture capital", "valuation", "acquisition", "merger", "stake in", "buyout",
+  "real estate", "mortgage", "logistics", "supply chain", "e-commerce",
+  "economy", "economic growth", "investment", "investor", "exports", "imports",
+  "bank", "lender", "loan", "credit rating", "currency", "riyal", "dirham",
+];
+
+/**
+ * Words that appear in business stories but appear in everything else too.
+ * "million", "deal", "project" and "authority" were on the main list and were
+ * single-handedly responsible for a 911-call-centre story and a defence pact
+ * reaching a business front page. These now only count from a publisher's
+ * dedicated business desk, where the surrounding context is already business.
+ */
+const WEAK_BUSINESS_TERMS = [
+  "market", "fund", "budget", "trade", "energy", "gas", "oil", "company", "firm", "ceo",
+  "business", "billion", "million", "deal", "contract", "project", "property", "construction",
+  "port", "shipping", "airline", "aviation", "tourism", "retail", "startup", "funding",
   "regulation", "licence", "license", "ministry", "authority", "tax", "reform", "vision 2030",
 ];
 
@@ -393,7 +483,15 @@ const GULF_TERMS = [
 
 function isRelevant(item: { title: string; summary: string }, broad: boolean): boolean {
   const hay = `${item.title} ${item.summary}`.toLowerCase();
-  const business = BUSINESS_TERMS.some((t) => hay.includes(t));
+
+  // Veto first. Nothing below can rescue a story this rules out.
+  if (isExcluded(hay)) return false;
+
+  // A strong term stands on its own. A weak one only counts when the story
+  // already came from a publisher's business desk.
+  const business =
+    STRONG_BUSINESS_TERMS.some((t) => hay.includes(t)) ||
+    (!broad && WEAK_BUSINESS_TERMS.some((t) => hay.includes(t)));
   if (!business) return false;
 
   const saudi = SAUDI_TERMS.some((t) => hay.includes(t));
@@ -418,6 +516,91 @@ function dedupeKey(title: string): string {
     .slice(0, 70);
 }
 
+/**
+ * NewsData.io — the licensed half of the mix.
+ *
+ * RSS gives Marsa depth on a handful of Gulf titles; a news API gives it
+ * breadth, proper country filtering and far more Saudi coverage than any single
+ * publisher's feed. Both are read the same way and normalise to the same shape,
+ * so the rest of the app cannot tell them apart.
+ *
+ * SECURITY: the key is read from the environment and must never be committed.
+ * This repository is public — a key pasted into source here is a key published
+ * to the world, and NewsData rotates on abuse, not on apology. Set
+ * NEWSDATA_API_KEY in the deploy platform's variables instead.
+ */
+const NEWSDATA_ENDPOINT = "https://newsdata.io/api/1/latest";
+
+interface NewsDataArticle {
+  title?: string;
+  link?: string;
+  description?: string;
+  pubDate?: string;
+  image_url?: string | null;
+  source_name?: string;
+  source_id?: string;
+}
+
+async function fetchNewsData(timeoutMs: number): Promise<NewsItem[]> {
+  const key = process.env.NEWSDATA_API_KEY;
+  if (!key) return [];
+
+  // Free-plan limits, and both of these were silently breaking every request:
+  //
+  //   size    — free maximum is 10. This asked for 50.
+  //   country — free maximum is 5 per query. This asked for 6 (sa,ae,qa,kw,bh,om).
+  //
+  // NewsData answers an out-of-range parameter with a 4xx, the catch below
+  // swallowed it, and the portal ran RSS-only while appearing to be keyed.
+  // Oman is the one dropped: smallest business wire of the six.
+  //
+  // Budget: free plan is 200 credits/day and one request costs one credit.
+  // At a 15-minute revalidate that is 96/day, comfortably inside it. Shortening
+  // the window or paginating for more than 10 stories spends real quota.
+  const url =
+    `${NEWSDATA_ENDPOINT}?apikey=${encodeURIComponent(key)}` +
+    `&country=sa,ae,qa,kw,bh&category=business&language=en&size=10`;
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { signal: controller.signal, next: { revalidate: 900 } });
+    if (!res.ok) return [];
+    const json = (await res.json()) as { status?: string; results?: NewsDataArticle[] };
+    if (json.status !== "success" || !Array.isArray(json.results)) return [];
+
+    const out: NewsItem[] = [];
+    for (const a of json.results) {
+      if (!a.title || !a.link || !a.pubDate) continue;
+      const at = new Date(a.pubDate.replace(" ", "T") + (a.pubDate.includes("Z") ? "" : "Z"));
+      if (!Number.isFinite(at.getTime())) continue;
+
+      const title = stripHtml(a.title);
+      let summary = stripHtml(a.description ?? "");
+      if (summary.length > 260) summary = `${summary.slice(0, 257).trimEnd()}…`;
+      if (summary.toLowerCase() === title.toLowerCase()) summary = "";
+
+      const name = a.source_name || a.source_id || "NewsData";
+      out.push({
+        id: Buffer.from(a.link, "utf8").toString("base64url"),
+        title,
+        summary,
+        link: a.link,
+        publishedAt: new Date(Math.min(at.getTime(), Date.now())).toISOString(),
+        sourceId: `newsdata:${a.source_id ?? "x"}`,
+        sourceName: name,
+        sourceNameAr: name,
+        section: "markets",
+      });
+    }
+    return out;
+  } catch {
+    return [];
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function getNews(
   { sections, limit = 60, timeoutMs = 6000 }: { sections?: Section[]; limit?: number; timeoutMs?: number } = {},
 ): Promise<FeedResult> {
@@ -426,16 +609,25 @@ export async function getNews(
   // reach the Energy page.
   const chosen = SOURCES;
 
-  const settled = await Promise.all(
-    chosen.map(async (source) => ({ source, items: await fetchOne(source, timeoutMs) })),
-  );
+  const [settled, apiItems] = await Promise.all([
+    Promise.all(
+      chosen.map(async (source) => {
+        const { items, error } = await fetchOne(source, timeoutMs);
+        return { source, items, error };
+      }),
+    ),
+    fetchNewsData(timeoutMs),
+  ]);
 
   const failed: string[] = [];
+  const statuses: SourceStatus[] = [];
   const seen = new Set<string>();
   const perSource = new Map<string, number>();
   const merged: NewsItem[] = [];
 
-  for (const { source, items } of settled) {
+  for (const { source, items, error } of settled) {
+    statuses.push({ id: source.id, name: source.name, ok: !error, error, items: items.length });
+
     if (!items.length) {
       failed.push(source.name);
       continue;
@@ -456,6 +648,16 @@ export async function getNews(
     }
   }
 
+  // API results go through the same relevance gate and dedupe as the feeds, so
+  // one pipeline decides what is on the page regardless of where it came from.
+  for (const raw of apiItems) {
+    if (!isRelevant(raw, false)) continue;
+    const key = dedupeKey(raw.title);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    merged.push({ ...raw, section: classify(raw.title, raw.summary, "markets") });
+  }
+
   merged.sort((a, b) => (a.publishedAt < b.publishedAt ? 1 : -1));
   const scoped = sections?.length ? merged.filter((i) => sections.includes(i.section)) : merged;
   const items = scoped.slice(0, limit);
@@ -469,6 +671,8 @@ export async function getNews(
     items,
     ok,
     failed: Array.from(new Set(failed)).filter((n) => !ok.includes(n)),
+    statuses,
+    newsApiItems: apiItems.length,
     fetchedAt: new Date().toISOString(),
   };
 }
