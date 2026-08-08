@@ -39,9 +39,16 @@ export interface Source {
   home: string;
   url: string;
   section: Section;
+  /**
+   * A general-news feed rather than a business desk. These carry Gulf business
+   * stories but also everything else the newsroom files, so they are gated
+   * through the relevance filter below before anything reaches the page.
+   */
+  broad?: boolean;
 }
 
 export interface NewsItem {
+  /** base64url of the link — stable, and decodable by the preview route. */
   id: string;
   title: string;
   summary: string;
@@ -51,6 +58,8 @@ export interface NewsItem {
   sourceName: string;
   sourceNameAr: string;
   section: Section;
+  /** Publisher's own thumbnail, when the feed offers one. */
+  image?: string;
 }
 
 export interface FeedResult {
@@ -86,6 +95,7 @@ export const SOURCES: Source[] = [
     home: "https://www.arabnews.com",
     url: "https://www.arabnews.com/rss.xml",
     section: "general",
+    broad: true,
   },
   {
     id: "saudigazette-business",
@@ -150,6 +160,7 @@ export const SOURCES: Source[] = [
     home: "https://www.wam.ae",
     url: "https://www.wam.ae/en/feed/rss",
     section: "policy",
+    broad: true,
   },
   {
     id: "aljazeera-economy",
@@ -158,6 +169,7 @@ export const SOURCES: Source[] = [
     home: "https://www.aljazeera.com",
     url: "https://www.aljazeera.com/xml/rss/all.xml",
     section: "general",
+    broad: true,
   },
 ];
 
@@ -243,6 +255,28 @@ function extractLink(block: string): string | null {
   return null;
 }
 
+/**
+ * The publisher's own thumbnail.
+ *
+ * Feeds advertise images in four different places depending on how old the CMS
+ * is, so all four are tried. Using a publisher's thumbnail on a card that
+ * credits and links to them is exactly what every reader-style aggregator does;
+ * it is the picture doing the same job as the headline, not a substitute for
+ * visiting the article.
+ */
+function extractImage(block: string): string | undefined {
+  const media = block.match(/<(?:[a-zA-Z0-9]+:)?(?:content|thumbnail)\b[^>]*\burl=["']([^"']+)["']/i);
+  if (media) return decodeEntities(media[1]);
+
+  const enclosure = block.match(/<enclosure\b[^>]*\burl=["']([^"']+)["'][^>]*>/i);
+  if (enclosure && /\.(jpe?g|png|webp|avif)/i.test(enclosure[1])) return decodeEntities(enclosure[1]);
+
+  const inline = block.match(/<img\b[^>]*\bsrc=["']([^"']+)["']/i);
+  if (inline) return decodeEntities(inline[1]);
+
+  return undefined;
+}
+
 function parseDate(block: string): string | null {
   const raw = tagText(block, "pubDate", "published", "updated", "date", "modified");
   if (!raw) return null;
@@ -284,7 +318,7 @@ export function parseFeed(xml: string, source: Source): NewsItem[] {
     if (summary.toLowerCase() === title.toLowerCase()) summary = "";
 
     out.push({
-      id: `${source.id}:${link}`,
+      id: Buffer.from(link, "utf8").toString("base64url"),
       title,
       summary,
       link,
@@ -293,6 +327,7 @@ export function parseFeed(xml: string, source: Source): NewsItem[] {
       sourceName: source.name,
       sourceNameAr: source.nameAr,
       section: source.section,
+      image: extractImage(block),
     });
   }
 
@@ -327,6 +362,53 @@ async function fetchOne(source: Source, timeoutMs: number): Promise<NewsItem[]> 
   }
 }
 
+/**
+ * Relevance gate for general-news feeds.
+ *
+ * The first live build proved why this is needed: Al Jazeera's all-news feed
+ * publishes far more often than any business desk, so within minutes the front
+ * page of a *Gulf business* portal led with Colombian politics, US deportation
+ * rulings and a drought in Indonesia. All real, all correctly timestamped, all
+ * completely wrong for the reader this exists for.
+ *
+ * Broad feeds must therefore earn their place per item: the headline or
+ * standfirst has to be about business, or about the region. Everything else is
+ * dropped. Business-desk feeds skip this entirely — their editors already did
+ * this job.
+ */
+const BUSINESS_TERMS = [
+  "market", "stock", "share", "index", "tadawul", "bourse", "exchange", "investor", "investment",
+  "fund", "ipo", "listing", "bond", "sukuk", "dividend", "earnings", "profit", "revenue", "loss",
+  "economy", "economic", "gdp", "inflation", "budget", "deficit", "surplus", "tariff", "trade",
+  "export", "import", "oil", "crude", "brent", "opec", "gas", "lng", "energy", "refinery", "barrel",
+  "bank", "lender", "loan", "credit", "rate", "central bank", "currency", "riyal", "dirham", "dollar",
+  "aramco", "sabic", "pif", "adnoc", "mubadala", "neom", "acwa", "emaar", "sovereign wealth",
+  "startup", "fintech", "venture", "funding", "valuation", "acquisition", "merger", "deal", "stake",
+  "property", "real estate", "construction", "contract", "project", "port", "logistics", "shipping",
+  "airline", "aviation", "tourism", "retail", "company", "firm", "ceo", "business", "billion", "million",
+];
+
+const REGION_TERMS = [
+  "saudi", "riyadh", "jeddah", "makkah", "mecca", "medina", "dammam", "neom", "kingdom",
+  "uae", "emirates", "dubai", "abu dhabi", "sharjah", "ajman",
+  "qatar", "doha", "kuwait", "bahrain", "manama", "oman", "muscat",
+  "gulf", "gcc", "mena", "middle east", "arab", "red sea", "egypt", "cairo", "jordan", "iraq",
+];
+
+function isRelevant(item: NewsItem): boolean {
+  const hay = `${item.title} ${item.summary}`.toLowerCase();
+  const business = BUSINESS_TERMS.some((t) => hay.includes(t));
+  if (!business) return false;
+  return REGION_TERMS.some((t) => hay.includes(t));
+}
+
+/**
+ * No single feed may take more than this share of the page. Without it the
+ * most prolific publisher wins on volume rather than relevance, and the portal
+ * stops being a survey of the region and becomes a mirror of one newsroom.
+ */
+const MAX_PER_SOURCE = 12;
+
 /** Headlines about the same event differ in punctuation and house style. */
 function dedupeKey(title: string): string {
   return title
@@ -349,29 +431,68 @@ export async function getNews(
     chosen.map(async (source) => ({ source, items: await fetchOne(source, timeoutMs) })),
   );
 
-  const ok: string[] = [];
   const failed: string[] = [];
   const seen = new Set<string>();
+  const perSource = new Map<string, number>();
   const merged: NewsItem[] = [];
 
   for (const { source, items } of settled) {
-    if (items.length) ok.push(source.name);
-    else failed.push(source.name);
+    if (!items.length) {
+      failed.push(source.name);
+      continue;
+    }
 
     for (const item of items) {
+      if (source.broad && !isRelevant(item)) continue;
+
+      const used = perSource.get(source.id) ?? 0;
+      if (used >= MAX_PER_SOURCE) continue;
+
       const key = dedupeKey(item.title);
       if (!key || seen.has(key)) continue;
+
       seen.add(key);
+      perSource.set(source.id, used + 1);
       merged.push(item);
     }
   }
 
   merged.sort((a, b) => (a.publishedAt < b.publishedAt ? 1 : -1));
+  const items = merged.slice(0, limit);
+
+  // Report the sources actually represented on the page, not the ones that
+  // merely answered — a name in the "reading" line that has no headline under
+  // it is a small lie about where the page came from.
+  const ok = Array.from(new Set(items.map((i) => i.sourceName)));
 
   return {
-    items: merged.slice(0, limit),
-    ok: Array.from(new Set(ok)),
+    items,
+    ok,
     failed: Array.from(new Set(failed)).filter((n) => !ok.includes(n)),
     fetchedAt: new Date().toISOString(),
   };
+}
+
+/** Decode a preview-route id back to the publisher URL it came from. */
+export function decodeItemId(id: string): string | null {
+  try {
+    const url = Buffer.from(id, "base64url").toString("utf8");
+    return /^https?:\/\//i.test(url) ? url : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Find one story for the in-app preview.
+ *
+ * Items live only as long as their publisher keeps them on the feed, so a
+ * preview link can legitimately go stale. When that happens the route says so
+ * and offers the publisher URL rather than pretending the story never existed.
+ */
+export async function getItemById(id: string): Promise<{ item: NewsItem | null; url: string | null }> {
+  const url = decodeItemId(id);
+  if (!url) return { item: null, url: null };
+  const news = await getNews({ limit: 400 });
+  return { item: news.items.find((i) => i.id === id) ?? null, url };
 }
