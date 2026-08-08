@@ -10,7 +10,9 @@ const LINKS = [
   { href: "/category/real-estate", label: "Real Estate" },
   { href: "/category/startups", label: "Startups" },
   { href: "/category/trade", label: "Trade" },
-  { href: "/category/policy", label: "Policy" },
+  // Policy is deliberately absent: the desk has never filed a policy story, and
+  // a top-level nav link that lands on "no stories yet" spends a reader's click
+  // to tell them the section is empty. It goes back the day it has copy.
 ];
 
 // Deep-links the language switch to the Arabic equivalent of the current page
@@ -56,9 +58,14 @@ export function Nav() {
           >
             العربية
           </Link>
-          <button className="rounded border-[3px] border-inkBorder bg-accent px-3 py-1.5 text-xs font-bold shadow-md transition hover:-translate-x-px hover:-translate-y-px hover:shadow-lg active:translate-x-px active:translate-y-px active:shadow-sm sm:px-4 sm:py-2 sm:text-sm">
+          {/* Was an inert <button>: the most prominent element above the fold
+              did nothing at all when clicked. It now jumps to the real signup. */}
+          <Link
+            href="/#brief"
+            className="rounded border-[3px] border-inkBorder bg-accent px-3 py-1.5 text-xs font-bold shadow-md transition hover:-translate-x-px hover:-translate-y-px hover:shadow-lg active:translate-x-px active:translate-y-px active:shadow-sm sm:px-4 sm:py-2 sm:text-sm"
+          >
             Subscribe
-          </button>
+          </Link>
         </div>
       </div>
 

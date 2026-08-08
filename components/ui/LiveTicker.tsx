@@ -56,6 +56,17 @@ function render(part: NonNullable<ReturnType<typeof decompose>>, n: number) {
   return `${part.prefix}${shown}${part.suffix}`;
 }
 
+/**
+ * Instruments that must never be shown drifting.
+ *
+ * The riyal is a hard peg at 3.7500 to the dollar and has been since 1986. A
+ * front page showing it randomly walking to 3.751 tells every finance-literate
+ * reader in the target market — which is the entire target market — that nobody
+ * who understands the subject reviewed the page. A pegged rate that sits
+ * perfectly still is not a broken ticker; it is a correct one.
+ */
+const PEGGED = new Set(["USD/SAR"]);
+
 type Cell = { label: string; text: string; direction: MarketTick["direction"] };
 
 export function LiveTicker({ ticks, lang = "en" }: { ticks: MarketTick[]; lang?: "en" | "ar" }) {
@@ -73,7 +84,7 @@ export function LiveTicker({ ticks, lang = "en" }: { ticks: MarketTick[]; lang?:
       setCells((prev) =>
         prev.map((cell, i) => {
           const base = bases[i];
-          if (!base || base.n === 0) return cell;
+          if (!base || base.n === 0 || PEGGED.has(cell.label)) return cell;
           // Drift each value by a small fraction of itself, then keep it
           // tethered so it wanders around the opening print instead of walking
           // off to an implausible number over a long session.
@@ -92,7 +103,6 @@ export function LiveTicker({ ticks, lang = "en" }: { ticks: MarketTick[]; lang?:
           timeZone: "Asia/Riyadh",
           hour: "2-digit",
           minute: "2-digit",
-          second: "2-digit",
           hour12: false,
         }).format(new Date()),
       );
@@ -122,10 +132,13 @@ export function LiveTicker({ ticks, lang = "en" }: { ticks: MarketTick[]; lang?:
       <span className="flex shrink-0 items-center gap-1.5 pl-1" title={isAr ? "أسعار مؤجلة" : "Delayed prices"}>
         <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent" />
         <span className="text-[10px] font-bold tracking-wide text-accent">{isAr ? "مؤجل" : "DELAYED"}</span>
-        {/* suppressHydrationWarning: the clock is intentionally client-only, so
-            the server's markup and the first client paint will not match. */}
+        {/* "AS OF" matters: a bare running clock next to the word DELAYED reads
+            as the size of the delay — i.e. "delayed by 06:24:20" — rather than
+            as the time of the last print.
+            suppressHydrationWarning: the clock is intentionally client-only, so
+            server markup and first client paint will not match. */}
         <span suppressHydrationWarning className="hidden text-[10px] tabular-nums text-paper/45 sm:inline">
-          {clock ?? "--:--:--"}
+          {isAr ? "حتى" : "as of"} {clock ?? "--:--"}
         </span>
       </span>
       <div className="flex w-full overflow-hidden">

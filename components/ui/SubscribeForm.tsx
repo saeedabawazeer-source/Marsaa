@@ -5,38 +5,47 @@ import { useState } from "react";
 /**
  * Morning-brief signup.
  *
- * The previous version of this was a bare <button> with no input and no
- * handler — it looked like the primary conversion point on the site and did
- * nothing at all when clicked. A dead primary CTA is worse than no CTA: it
- * spends the reader's one moment of intent and returns nothing.
+ * The first version of this component was a bare <button> that did nothing. The
+ * second validated the address and then painted a green "Check your inbox to
+ * confirm" without ever making a network call — the address was discarded and
+ * no confirmation was coming. That is a worse failure than the dead button,
+ * because it lies to the reader about what happened to their data.
  *
- * This validates locally, gives an immediate confirmed state, and keeps the
- * address in component state only.
- *
- * TODO(api): POST to the list provider before shipping. Everything below the
- * `submit` boundary is presentation; wire the network call there and surface a
- * real failure state, e.g.
- *   const res = await fetch("/api/subscribe", { method: "POST", body: JSON.stringify({ email }) });
- * Until that exists this stores nothing and promises nothing it cannot keep,
- * which is why the confirmation copy says "check your inbox to confirm" rather
- * than claiming a subscription was created.
+ * This version posts to /api/subscribe and reports what actually occurred. When
+ * no list provider is configured the route answers 503 and the reader is told
+ * signups are not open yet, which is true, instead of being thanked for a
+ * subscription that does not exist.
  */
 
-type State = "idle" | "invalid" | "done";
+type State = "idle" | "invalid" | "sending" | "done" | "unavailable" | "error";
 
 export function SubscribeForm({ lang = "en" }: { lang?: "en" | "ar" }) {
   const isAr = lang === "ar";
   const [email, setEmail] = useState("");
   const [state, setState] = useState<State>("idle");
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const ok = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim());
-    if (!ok) {
+    if (state === "sending") return;
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim())) {
       setState("invalid");
       return;
     }
-    setState("done");
+
+    setState("sending");
+    try {
+      const res = await fetch("/api/subscribe", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      if (res.ok) setState("done");
+      else if (res.status === 503) setState("unavailable");
+      else setState("error");
+    } catch {
+      setState("error");
+    }
   };
 
   if (state === "done") {
@@ -48,7 +57,26 @@ export function SubscribeForm({ lang = "en" }: { lang?: "en" | "ar" }) {
       >
         <span aria-hidden className="font-mono text-lg font-bold text-teal-dark">✓</span>
         <p className="text-sm font-semibold">
-          {isAr ? "تحقق من بريدك لتأكيد الاشتراك." : "Check your inbox to confirm."}
+          {isAr ? "تم التسجيل. تحقق من بريدك للتأكيد." : "You're on the list. Check your inbox to confirm."}
+        </p>
+      </div>
+    );
+  }
+
+  if (state === "unavailable") {
+    return (
+      <div
+        dir={isAr ? "rtl" : "ltr"}
+        role="status"
+        className="mx-auto max-w-md rounded border-[3px] border-inkBorder bg-paper px-4 py-3 text-ink shadow-md"
+      >
+        <p className="text-sm font-semibold">
+          {isAr ? "التسجيل لم يُفتح بعد." : "Signups aren't open yet."}
+        </p>
+        <p className="mt-1 text-xs text-gray-600">
+          {isAr
+            ? "لم يتم حفظ بريدك. الصحيفة لم تطلق النشرة بعد."
+            : "Your address was not saved — the brief hasn't launched yet."}
         </p>
       </div>
     );
@@ -69,27 +97,36 @@ export function SubscribeForm({ lang = "en" }: { lang?: "en" | "ar" }) {
           value={email}
           onChange={(e) => {
             setEmail(e.target.value);
-            if (state === "invalid") setState("idle");
+            if (state !== "sending") setState("idle");
           }}
-          placeholder={isAr ? "name@company.com" : "name@company.com"}
+          placeholder="name@company.com"
           aria-invalid={state === "invalid"}
-          aria-describedby={state === "invalid" ? "brief-email-error" : undefined}
+          aria-describedby={state === "invalid" || state === "error" ? "brief-email-error" : undefined}
           className={`h-11 w-full rounded border-[3px] bg-white px-3 text-sm text-ink shadow-md outline-none transition placeholder:text-gray-400 focus:ring-2 focus:ring-accent ${
-            state === "invalid" ? "border-[#b3423f]" : "border-inkBorder"
+            state === "invalid" || state === "error" ? "border-[#b3423f]" : "border-inkBorder"
           }`}
         />
         <button
           type="submit"
-          className="h-11 shrink-0 rounded border-[3px] border-inkBorder bg-accent px-5 text-sm font-bold text-ink shadow-md transition hover:-translate-y-px active:translate-y-0"
+          disabled={state === "sending"}
+          className="h-11 shrink-0 rounded border-[3px] border-inkBorder bg-accent px-5 text-sm font-bold text-ink shadow-md transition hover:-translate-y-px active:translate-y-0 disabled:opacity-70"
         >
-          {isAr ? "اشترك مجاناً" : "Subscribe free"}
+          {state === "sending" ? (isAr ? "جارٍ..." : "Sending…") : isAr ? "اشترك مجاناً" : "Subscribe free"}
         </button>
       </div>
-      {state === "invalid" && (
+
+      {(state === "invalid" || state === "error") && (
         <p id="brief-email-error" role="alert" className="mt-2 text-xs font-semibold text-[#ffd9d7]">
-          {isAr ? "يرجى إدخال بريد إلكتروني صحيح." : "Enter a valid email address."}
+          {state === "invalid"
+            ? isAr
+              ? "يرجى إدخال بريد إلكتروني صحيح."
+              : "Enter a valid email address."
+            : isAr
+              ? "تعذر إتمام الطلب. حاول مرة أخرى."
+              : "Something went wrong. Try again."}
         </p>
       )}
+
       <p className="mt-2 text-center font-mono text-[10px] uppercase tracking-wide text-paper/60">
         {isAr ? "رسالة واحدة كل صباح عمل. إلغاء الاشتراك بنقرة." : "One email each working morning. Unsubscribe in a click."}
       </p>
