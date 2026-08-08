@@ -6,6 +6,7 @@ import { NewsStream } from "@/components/ui/NewsStream";
 import { NewsCard } from "@/components/ui/NewsCard";
 import { AdSlot } from "@/components/ui/AdSlot";
 import { SubscribeForm } from "@/components/ui/SubscribeForm";
+import { Thumb } from "@/components/ui/Thumb";
 import { fmtClock, fmtAgo, fmtDay } from "@/lib/time";
 import { CATEGORY_LABELS_AR } from "@/lib/labels";
 
@@ -96,7 +97,22 @@ export default async function ArabicHomePage() {
                 ))}
               </nav>
 
-              <div className="mt-6 rounded-lg border-2 border-inkBorder bg-white p-3.5 shadow-[0_2px_0_0_rgba(26,26,26,0.9)]">
+              <Link
+                href="/ar/game"
+                className="mt-6 block rounded-lg border-2 border-inkBorder bg-accent p-3.5 shadow-[0_2px_0_0_rgba(26,26,26,0.9)] transition hover:-translate-y-0.5 hover:shadow-[0_5px_0_0_rgba(26,26,26,0.9)]"
+              >
+                <h3 className="mb-1 flex items-center gap-1.5 text-[13px] font-bold leading-snug">
+                  مرسى اليومي <span aria-hidden>✦</span>
+                </h3>
+                <p className="text-[12px] leading-relaxed text-ink/75">
+                  خمسة حروف من عالم الأعمال الخليجي. كلمة جديدة كل صباح.
+                </p>
+                <span className="mt-2 block font-mono text-[10px] font-bold underline underline-offset-2">
+                  ← العب لغز اليوم
+                </span>
+              </Link>
+
+              <div className="mt-4 rounded-lg border-2 border-inkBorder bg-white p-3.5 shadow-[0_2px_0_0_rgba(26,26,26,0.9)]">
                 <h3 className="mb-1.5 text-[13px] font-bold leading-snug">النشرة الصباحية</h3>
                 <p className="mb-3 text-[12px] leading-relaxed text-gray-600">
                   أخبار أعمال الخليج، مختصرة، قبل افتتاح السوق.
@@ -111,7 +127,7 @@ export default async function ArabicHomePage() {
             </div>
           </aside>
 
-          <main>
+          <main className="self-start">
             {lead ? (
               <>
                 <NewsCard item={lead} now={now} big lang="ar" />
@@ -143,12 +159,24 @@ export default async function ArabicHomePage() {
               <ol className="divide-y divide-gray-200 border-y border-gray-200">
                 {latest.map((i) => (
                   <li key={i.id}>
-                    <Link href={`/ar/story/${i.id}`} className="group block py-2.5">
-                      <span className="block text-[13px] font-semibold leading-snug transition group-hover:text-teal-dark">
-                        {i.title}
+                    <Link href={`/ar/story/${i.id}`} className="group flex items-start gap-2.5 py-2.5">
+                      <span className="shrink-0 overflow-hidden rounded border border-inkBorder">
+                        <Thumb
+                          src={i.image}
+                          alt=""
+                          source={i.sourceNameAr}
+                          section={i.section}
+                          sizes="52px"
+                          className="h-[52px] w-[52px]"
+                        />
                       </span>
-                      <span className="mt-1 block font-mono text-[10px] text-gray-400">
-                        {i.sourceNameAr} · {fmtAgo(i.publishedAt, now, "ar")}
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-[13px] font-semibold leading-snug transition group-hover:text-teal-dark">
+                          {i.title}
+                        </span>
+                        <span className="mt-1 block font-mono text-[10px] text-gray-400">
+                          {i.sourceNameAr} · {fmtAgo(i.publishedAt, now, "ar")}
+                        </span>
                       </span>
                     </Link>
                   </li>
