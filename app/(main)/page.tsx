@@ -3,6 +3,7 @@ import { getMarketTicks } from "@/lib/api";
 import { getNews } from "@/lib/feeds";
 import { LiveTicker } from "@/components/ui/LiveTicker";
 import { NewsStream } from "@/components/ui/NewsStream";
+import { NewsCard } from "@/components/ui/NewsCard";
 import { AdSlot } from "@/components/ui/AdSlot";
 import { SubscribeForm } from "@/components/ui/SubscribeForm";
 import { fmtDateline, fmtClock } from "@/lib/time";
@@ -34,6 +35,12 @@ export default async function HomePage() {
 
   const sources = Array.from(new Set(news.items.map((i) => i.sourceName))).sort();
   const [lead, ...restItems] = news.items;
+  // Pictures first: the top of the page is a visual grid, and the wire below it
+  // is for scanning the rest fast. Cards with art go first so the front page
+  // reads as a publication rather than as a list of links.
+  const withArt = restItems.filter((i) => i.image);
+  const withoutArt = restItems.filter((i) => !i.image);
+  const featured = [...withArt, ...withoutArt].slice(0, 6);
 
   return (
     <>
@@ -50,9 +57,9 @@ export default async function HomePage() {
             </span>
             <h1 className="mb-3 text-3xl font-bold leading-[1.08] sm:text-4xl">Gulf business, all in one place.</h1>
             <p className="mb-4 max-w-[48ch] text-[15px] leading-relaxed opacity-90">
-              Marsa reads the region&apos;s business desks so you don&apos;t have to open six tabs. Every
-              headline below is published by the outlet named beside it, and every link opens on their
-              site.
+              Marsa reads the region&apos;s business desks so you don&apos;t have to open six tabs. Browse
+              it all here — every story credits the outlet that reported it, and the full article is one
+              tap away on their site.
             </p>
             <p className="font-mono text-[11px] uppercase tracking-wide text-paper/70">
               {news.ok.length > 0 ? (
@@ -66,12 +73,21 @@ export default async function HomePage() {
           </div>
 
           {lead ? (
-            <a
-              href={lead.link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group block rounded border-4 border-inkBorder bg-paper p-5 text-ink shadow-dramatic-accent transition hover:-translate-y-px"
+            <Link
+              href={`/story/${lead.id}`}
+              className="group block overflow-hidden rounded border-4 border-inkBorder bg-paper text-ink shadow-dramatic-accent transition hover:-translate-y-px"
             >
+              {lead.image && (
+                <div className="h-44 w-full overflow-hidden border-b-4 border-inkBorder sm:h-52">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={lead.image}
+                    alt=""
+                    className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
+                  />
+                </div>
+              )}
+              <div className="p-5">
               <div className="mb-2.5 flex flex-wrap items-center gap-2">
                 <span className="inline-block rounded-full bg-teal px-2.5 py-1 font-mono text-[11px] font-bold uppercase text-white">
                   Latest
@@ -82,15 +98,13 @@ export default async function HomePage() {
               </div>
               <h2 className="mb-2 text-xl font-bold leading-snug transition group-hover:text-teal-dark sm:text-[26px]">
                 {lead.title}
-                <span aria-hidden className="ml-1.5 font-mono text-base text-gray-400 group-hover:text-teal-dark">
-                  ↗
-                </span>
               </h2>
               {lead.summary && <p className="mb-3 text-sm leading-relaxed text-gray-600">{lead.summary}</p>}
               <div className="font-mono text-[11px] uppercase tracking-wide text-gray-500">
                 <time dateTime={lead.publishedAt}>{fmtDateline(lead.publishedAt)}</time>
               </div>
-            </a>
+              </div>
+            </Link>
           ) : (
             /* Honest failure state. A portal whose feeds are down says so; it
                does not paper over the gap with yesterday's cache pretending to
@@ -111,6 +125,17 @@ export default async function HomePage() {
           <span>◆ Reading {news.ok.length ? news.ok.join(" · ") : "—"}</span>
         </div>
       </div>
+
+      {featured.length > 0 && (
+        <section className="mx-auto max-w-[1180px] px-4 pt-8 sm:px-6">
+          <h2 className="mb-4 border-b-2 border-ink pb-2 text-xl font-bold">Top stories</h2>
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {featured.map((i) => (
+              <NewsCard key={i.id} item={i} now={now} />
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="mx-auto max-w-[1180px] px-4 py-8 sm:px-6">
         {restItems.length > 0 || lead ? (
