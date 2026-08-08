@@ -9,7 +9,7 @@
  *   return res.json();
  */
 
-import type { Article, MarketTick, WireItem } from "./types";
+import type { Article, MarketTick } from "./types";
 
 const MOCK_ARTICLES: Article[] = [
   {
@@ -172,17 +172,18 @@ const MOCK_MARKET_TICKS: MarketTick[] = [
 
 export async function getLatestArticles(): Promise<Article[]> {
   // TODO(api): replace with real fetch to the CMS/API
-  return MOCK_ARTICLES;
+  return MOCK_ARTICLES.map(withRealReadTime);
 }
 
 export async function getArticleBySlug(slug: string): Promise<Article | undefined> {
   // TODO(api): replace with real fetch to the CMS/API
-  return MOCK_ARTICLES.find((a) => a.slug === slug);
+  const found = MOCK_ARTICLES.find((a) => a.slug === slug);
+  return found ? withRealReadTime(found) : undefined;
 }
 
 export async function getArticlesByCategory(category: string): Promise<Article[]> {
   // TODO(api): replace with real fetch to the CMS/API
-  return MOCK_ARTICLES.filter((a) => a.category === category);
+  return MOCK_ARTICLES.filter((a) => a.category === category).map(withRealReadTime);
 }
 
 export async function getMarketTicks(): Promise<MarketTick[]> {
@@ -191,96 +192,22 @@ export async function getMarketTicks(): Promise<MarketTick[]> {
 }
 
 /**
- * The market wire.
+ * Read time, computed from the actual body rather than stored by hand.
  *
- * Each entry carries an offset in minutes rather than a hardcoded timestamp,
- * and getWire() resolves those offsets against the moment of render. Combined
- * with the short `revalidate` window on the pages that use it, this means the
- * wire always shows plausible, current, *moving* times instead of a frozen set
- * of datestamps that quietly rot after deploy.
+ * The stored readMins values were wrong by roughly 5x — three-paragraph,
+ * ~130-word items were labelled "3 MIN READ", which is a 35-second read. A
+ * reader who clicks a 3-minute promise and finishes in 35 seconds learns that
+ * this site's numbers are decorative, and that lesson transfers to every other
+ * number on the page, including the market data.
  *
- * TODO(api): replace MOCK_WIRE with a real feed. The shape a newsroom CMS or a
- * vendor tape returns maps 1:1 onto WireItem — swap the array for a fetch and
- * drop the offset arithmetic:
- *   const res = await fetch(`${process.env.MARSA_API_URL}/wire?limit=12`, { next: { revalidate: 60 } });
- *   return res.json();
+ * 220 wpm is the standard adult silent-reading rate for non-technical prose.
+ * Floor of 1 so nothing reports "0 min".
  */
-const MOCK_WIRE: Array<Omit<WireItem, "at"> & { minsAgo: number }> = [
-  {
-    id: "w1",
-    minsAgo: 8,
-    category: "markets",
-    text: "TASI holds above 11,800 into the afternoon session; banks lead gainers.",
-    textAr: "تاسي يحافظ على مستوى 11,800 نقطة في الجلسة المسائية، والبنوك تتصدر الرابحين.",
-  },
-  {
-    id: "w2",
-    minsAgo: 21,
-    category: "energy",
-    text: "Brent slips below $81.50 as traders position ahead of the OPEC+ review.",
-    textAr: "برنت يتراجع دون 81.50 دولاراً مع ترقب المتعاملين لمراجعة أوبك+.",
-  },
-  {
-    id: "w3",
-    minsAgo: 36,
-    category: "trade",
-    text: "Jeddah Islamic Port reports a second straight month of record container throughput.",
-    textAr: "ميناء جدة الإسلامي يسجل شهراً قياسياً ثانياً على التوالي في مناولة الحاويات.",
-  },
-  {
-    id: "w4",
-    minsAgo: 52,
-    category: "policy",
-    text: "SAMA leaves its repo rate unchanged, tracking the Fed's most recent hold.",
-    textAr: "ساما تبقي على سعر إعادة الشراء دون تغيير، تماشياً مع تثبيت الفيدرالي الأخير.",
-  },
-  {
-    id: "w5",
-    minsAgo: 74,
-    category: "startups",
-    text: "Riyadh fintech licensing round opens; regulator signals a wider sandbox intake.",
-    textAr: "فتح جولة تراخيص التقنية المالية في الرياض، والجهة التنظيمية تشير إلى توسيع البيئة التجريبية.",
-  },
-  {
-    id: "w6",
-    minsAgo: 95,
-    category: "real-estate",
-    text: "NEOM bond sale reported oversubscribed roughly three times on the order book.",
-    textAr: "تقارير عن تغطية طرح سندات نيوم بنحو ثلاثة أضعاف في سجل الأوامر.",
-  },
-  {
-    id: "w7",
-    minsAgo: 128,
-    category: "markets",
-    text: "Tadawul turnover tracking near SAR 4.2bn, broadly in line with the 30-day average.",
-    textAr: "قيمة التداولات في تداول تقترب من 4.2 مليار ريال، متوافقة عموماً مع متوسط 30 يوماً.",
-  },
-  {
-    id: "w8",
-    minsAgo: 165,
-    category: "energy",
-    text: "Aramco confirms its next results date; buyback pace is the line to watch.",
-    textAr: "أرامكو تؤكد موعد نتائجها المقبلة، ووتيرة إعادة الشراء هي البند محل المتابعة.",
-  },
-  {
-    id: "w9",
-    minsAgo: 210,
-    category: "trade",
-    text: "Red Sea Express rotation adds a call, tightening Jeddah–Egypt transit times.",
-    textAr: "خط إكسبريس البحر الأحمر يضيف ميناءً للدورة، ما يقلص زمن العبور بين جدة ومصر.",
-  },
-  {
-    id: "w10",
-    minsAgo: 264,
-    category: "real-estate",
-    text: "Giga-project contractors report continued pull-through in construction-tech spend.",
-    textAr: "مقاولو المشاريع العملاقة يفيدون باستمرار الإنفاق على تقنيات البناء.",
-  },
-];
+export function readingMinutes(body: string[]): number {
+  const words = body.join(" ").trim().split(/\s+/).filter(Boolean).length;
+  return Math.max(1, Math.round(words / 220));
+}
 
-export async function getWire(now: Date = new Date()): Promise<WireItem[]> {
-  return MOCK_WIRE.map(({ minsAgo, ...rest }) => ({
-    ...rest,
-    at: new Date(now.getTime() - minsAgo * 60_000).toISOString(),
-  }));
+function withRealReadTime(a: Article): Article {
+  return { ...a, readMins: readingMinutes(a.body) };
 }
