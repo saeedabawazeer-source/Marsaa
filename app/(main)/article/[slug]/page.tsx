@@ -5,6 +5,7 @@ import { getArticleBySlug, getLatestArticles } from "@/lib/api";
 import { AdSlot } from "@/components/ui/AdSlot";
 import { CoverArt } from "@/components/ui/CoverArt";
 import { ReadingProgress } from "@/components/ui/ReadingProgress";
+import { SubscribeForm } from "@/components/ui/SubscribeForm";
 import { fmtDateline } from "@/lib/time";
 
 export async function generateStaticParams() {
@@ -109,6 +110,17 @@ export default async function ArticlePage({ params }: { params: { slug: string }
             →
           </span>
         </Link>
+
+        {/* Signup at the end of the piece. The article template previously
+            offered the reader nothing at the exact moment they had just spent
+            three minutes with the publication and were most convertible. */}
+        <div className="mt-10 rounded border-[3px] border-inkBorder bg-teal px-5 py-6 text-paper shadow-md">
+          <h2 className="mb-1 text-center text-lg font-bold">Get the morning brief.</h2>
+          <p className="mb-4 text-center text-sm opacity-90">
+            MENA business, in five minutes, before the Riyadh open.
+          </p>
+          <SubscribeForm />
+        </div>
 
         <div className="mt-10">
           <AdSlot width={336} height={280} />
