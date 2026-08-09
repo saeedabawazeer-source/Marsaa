@@ -5,7 +5,7 @@ import { getMarketSnapshot } from "@/lib/market";
 /**
  * Operational read-out.
  *
- * Marsa depends on ~16 publisher feeds and three external APIs, all of which
+ * Marsa depends on ~20 publisher feeds and three external APIs, all of which
  * fail in ways that look identical from the front page: fewer cards. For days
  * the live site ran on 3 of 16 sources and nothing said so, because every
  * failure path returned an empty array.
@@ -13,8 +13,17 @@ import { getMarketSnapshot } from "@/lib/market";
  * This endpoint answers "what is actually working right now" — per-source, with
  * the reason. Deliberately no secrets: key names and booleans only, never
  * values, because this route is public.
+ *
+ * `force-dynamic`, not `revalidate` alone: a GET handler with no request-
+ * dependent logic is a candidate for build-time static optimisation, and a
+ * status page that got baked in at build time and served unchanged afterward
+ * is the exact failure this route exists to catch — a health check that
+ * cannot itself go stale is worth more than one that also needs a health
+ * check. `getNews()`'s own per-feed fetches already carry `revalidate: 300`,
+ * which is the real freshness bound; the s-maxage header below matches it for
+ * any CDN sitting in front.
  */
-export const revalidate = 300;
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   const [news, market] = await Promise.all([getNews({ limit: 200 }), getMarketSnapshot()]);

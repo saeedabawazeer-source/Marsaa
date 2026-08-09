@@ -137,6 +137,12 @@ export interface FeedResult {
  *   gulfbusiness          — 403. Same.
  *   gulfnews, khaleejtimes, tradearabia, zawya, mubasher, aleqt, okaz,
  *   aljazeera.net, arabnews/ar, spa (both) — 404 or HTML-not-RSS. Retired paths.
+ *   aljazeera.net/aljazeerarss/economy — re-tried 2026-08-09 as a global
+ *   Arabic source (different path than the one above). Answered 200, but
+ *   produced zero items in production across three desks; pulled rather than
+ *   left as unverified dead weight. Do not re-add without confirming through
+ *   /api/probe first — this file's own rule, that /api/probe is skipped this
+ *   time is exactly how it got re-added the first time.
  *
  * The 403s are a publisher saying no. The right response is to ask them for
  * access, not to spoof a browser user-agent until they let us through.
@@ -203,9 +209,11 @@ export const SOURCES: Source[] = [
   { id: "investing-global-markets", name: "Investing.com", nameAr: "إنفيستنج دوت كوم", home: "https://www.investing.com", url: "https://www.investing.com/rss/news_25.rss", section: "markets", lang: "en", global: true },
   { id: "investing-global-commodities", name: "Investing.com", nameAr: "إنفيستنج دوت كوم", home: "https://www.investing.com", url: "https://www.investing.com/rss/news_11.rss", section: "energy", lang: "en", global: true },
   { id: "investing-global-companies", name: "Investing.com", nameAr: "إنفيستنج دوت كوم", home: "https://www.investing.com", url: "https://www.investing.com/rss/news_356.rss", section: "markets", lang: "en", global: true },
-  // Al Jazeera's Arabic economy desk — pan-Arab, not Gulf-restricted, and the
-  // Arabic edition's global counterpart to the three feeds above.
-  { id: "aljazeera-ar-economy", name: "Al Jazeera", nameAr: "الجزيرة", home: "https://www.aljazeera.net", url: "https://www.aljazeera.net/aljazeerarss/economy", section: "markets", lang: "ar", global: true },
+  // No Arabic global wire yet — see the removal note above the registry.
+  // aljazeera.net was tried here on 2026-08-09 (a different path than the one
+  // already documented dead below) and produced zero live items across three
+  // desks in production, so it was pulled rather than left as dead weight.
+  // Candidates for a real replacement are queued in app/api/probe/route.ts.
 ];
 
 /**
@@ -652,6 +660,14 @@ const EXCLUDE_TERMS = [
   "النصر", "الاهلي",
   // Disasters and health
   "زلزال", "فيضان", "حريق", "اعصار", "وباء", "تفشي", "تسمم", "تحطم طائره",
+
+  // Algorithmic technical-analysis chatter, found mixed into Investing.com's
+  // news wire alongside real Reuters copy: "Brent Oil trapped between MAs at
+  // $83.35: Live levels", "London Gas Oil doji at $1,188 bear flag zone".
+  // This is chart-pattern narration, not news — nothing has happened, a
+  // script described a candlestick. It reads nothing like the editorial
+  // copy next to it and doesn't belong on a business desk.
+  "live levels", "bear flag", "bull flag", "doji", "resistance zone",
 ];
 
 function isExcluded(hay: string): boolean {

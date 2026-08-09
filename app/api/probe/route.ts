@@ -82,6 +82,19 @@ const CANDIDATES: Candidate[] = [
   { name: "Gulf Business", url: "https://gulfbusiness.com/feed/", lang: "en" },
   { name: "Economy Middle East", url: "https://economymiddleeast.com/feed/", lang: "en" },
   { name: "MEED", url: "https://www.meed.com/feed", lang: "en" },
+
+  // ---- Arabic global business wires (2026-08-09) ----
+  // Gulf/Saudi Arabic sources are covered; these are candidates for the
+  // Arabic edition's global counterpart to the three Investing.com feeds
+  // already live on the English side. aljazeera.net/aljazeerarss/economy was
+  // tried without going through here first and produced zero live items —
+  // see the removal note in lib/feeds.ts. Nothing below gets added to
+  // SOURCES until it shows real, recent, parseable items here.
+  { name: "Sky News Arabia — أعمال", url: "https://www.skynewsarabia.com/rss/business.xml", lang: "ar" },
+  { name: "Sky News Arabia — اقتصاد", url: "https://www.skynewsarabia.com/rss/economy.xml", lang: "ar" },
+  { name: "Asharq (Bloomberg AR)", url: "https://asharq.com/rss", lang: "ar" },
+  { name: "Al Ain News — اقتصاد", url: "https://al-ain.com/rss/section/9", lang: "ar" },
+  { name: "Emarat Al Youm — اقتصاد", url: "https://www.emaratalyoum.com/rss/economy-business", lang: "ar" },
 ];
 
 /** Share of Arabic-script characters, to confirm a feed is actually Arabic. */
