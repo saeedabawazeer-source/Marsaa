@@ -39,6 +39,17 @@ export interface Source {
   home: string;
   url: string;
   /**
+   * The language the publisher files in.
+   *
+   * Load-bearing, not metadata. The Arabic edition used to render the English
+   * wire with Arabic furniture around it — Arabic labels, Arabic timestamps,
+   * English headlines — because every source in this list was English and
+   * nothing separated them. An Arabic reader arriving at /ar got a page in a
+   * language they did not ask for. The edition a story is eligible for is now
+   * decided here, at the source.
+   */
+  lang: "en" | "ar";
+  /**
    * A hint only. The desk a story lands on is decided per item by classify()
    * below, because a publisher's "business" feed carries energy, property and
    * trade stories all mixed together and a reader looking for Energy should
@@ -64,6 +75,8 @@ export interface NewsItem {
   sourceName: string;
   sourceNameAr: string;
   section: Section;
+  /** Which edition this story belongs to. See Source.lang. */
+  lang: "en" | "ar";
   /** Publisher's own thumbnail, when the feed offers one. */
   image?: string;
 }
@@ -92,24 +105,24 @@ export interface FeedResult {
 export const SOURCES: Source[] = [
   // --- Saudi desks first. Marsa is a Jeddah publication, so the Kingdom leads
   // the mix and the wider Gulf fills in around it. ---
-  { id: "arabnews-business", name: "Arab News", nameAr: "عرب نيوز", home: "https://www.arabnews.com", url: "https://www.arabnews.com/cat/3/rss.xml", section: "markets" },
-  { id: "arabnews-saudi", name: "Arab News", nameAr: "عرب نيوز", home: "https://www.arabnews.com", url: "https://www.arabnews.com/cat/1/rss.xml", section: "policy", broad: true },
-  { id: "arabnews-all", name: "Arab News", nameAr: "عرب نيوز", home: "https://www.arabnews.com", url: "https://www.arabnews.com/rss.xml", section: "markets", broad: true },
-  { id: "saudigazette-business", name: "Saudi Gazette", nameAr: "سعودي غازيت", home: "https://saudigazette.com.sa", url: "https://saudigazette.com.sa/rssFeed/74", section: "markets" },
-  { id: "saudigazette-saudi", name: "Saudi Gazette", nameAr: "سعودي غازيت", home: "https://saudigazette.com.sa", url: "https://saudigazette.com.sa/rssFeed/78", section: "policy", broad: true },
-  { id: "spa-en", name: "SPA", nameAr: "واس", home: "https://www.spa.gov.sa", url: "https://www.spa.gov.sa/rss.xml", section: "policy", broad: true },
-  { id: "argaam-en", name: "Argaam", nameAr: "أرقام", home: "https://www.argaam.com", url: "https://www.argaam.com/en/rss", section: "markets" },
-  { id: "alarabiya-business", name: "Al Arabiya", nameAr: "العربية", home: "https://english.alarabiya.net", url: "https://english.alarabiya.net/tools/rss/business", section: "markets" },
+  { id: "arabnews-business", name: "Arab News", nameAr: "عرب نيوز", home: "https://www.arabnews.com", url: "https://www.arabnews.com/cat/3/rss.xml", section: "markets", lang: "en" },
+  { id: "arabnews-saudi", name: "Arab News", nameAr: "عرب نيوز", home: "https://www.arabnews.com", url: "https://www.arabnews.com/cat/1/rss.xml", section: "policy", broad: true, lang: "en" },
+  { id: "arabnews-all", name: "Arab News", nameAr: "عرب نيوز", home: "https://www.arabnews.com", url: "https://www.arabnews.com/rss.xml", section: "markets", broad: true, lang: "en" },
+  { id: "saudigazette-business", name: "Saudi Gazette", nameAr: "سعودي غازيت", home: "https://saudigazette.com.sa", url: "https://saudigazette.com.sa/rssFeed/74", section: "markets", lang: "en" },
+  { id: "saudigazette-saudi", name: "Saudi Gazette", nameAr: "سعودي غازيت", home: "https://saudigazette.com.sa", url: "https://saudigazette.com.sa/rssFeed/78", section: "policy", broad: true, lang: "en" },
+  { id: "spa-en", name: "SPA", nameAr: "واس", home: "https://www.spa.gov.sa", url: "https://www.spa.gov.sa/rss.xml", section: "policy", broad: true, lang: "en" },
+  { id: "argaam-en", name: "Argaam", nameAr: "أرقام", home: "https://www.argaam.com", url: "https://www.argaam.com/en/rss", section: "markets", lang: "en" },
+  { id: "alarabiya-business", name: "Al Arabiya", nameAr: "العربية", home: "https://english.alarabiya.net", url: "https://english.alarabiya.net/tools/rss/business", section: "markets", lang: "en" },
 
   // --- Wider Gulf ---
-  { id: "arabianbusiness", name: "Arabian Business", nameAr: "أرابيان بزنس", home: "https://www.arabianbusiness.com", url: "https://www.arabianbusiness.com/rss.xml", section: "markets" },
-  { id: "khaleejtimes-business", name: "Khaleej Times", nameAr: "خليج تايمز", home: "https://www.khaleejtimes.com", url: "https://www.khaleejtimes.com/rss/business", section: "markets" },
-  { id: "gulfnews-business", name: "Gulf News", nameAr: "غلف نيوز", home: "https://gulfnews.com", url: "https://gulfnews.com/rss?generatorName=business", section: "markets" },
-  { id: "tradearabia-business", name: "TradeArabia", nameAr: "تريد أرابيا", home: "http://www.tradearabia.com", url: "http://www.tradearabia.com/rss/BUS_0.xml", section: "trade" },
-  { id: "tradearabia-energy", name: "TradeArabia", nameAr: "تريد أرابيا", home: "http://www.tradearabia.com", url: "http://www.tradearabia.com/rss/OGN_0.xml", section: "energy" },
-  { id: "tradearabia-construction", name: "TradeArabia", nameAr: "تريد أرابيا", home: "http://www.tradearabia.com", url: "http://www.tradearabia.com/rss/CONS_0.xml", section: "real-estate" },
-  { id: "zawya-en", name: "Zawya", nameAr: "زاوية", home: "https://www.zawya.com", url: "https://www.zawya.com/en/rss", section: "markets" },
-  { id: "aljazeera-all", name: "Al Jazeera", nameAr: "الجزيرة", home: "https://www.aljazeera.com", url: "https://www.aljazeera.com/xml/rss/all.xml", section: "policy", broad: true },
+  { id: "arabianbusiness", name: "Arabian Business", nameAr: "أرابيان بزنس", home: "https://www.arabianbusiness.com", url: "https://www.arabianbusiness.com/rss.xml", section: "markets", lang: "en" },
+  { id: "khaleejtimes-business", name: "Khaleej Times", nameAr: "خليج تايمز", home: "https://www.khaleejtimes.com", url: "https://www.khaleejtimes.com/rss/business", section: "markets", lang: "en" },
+  { id: "gulfnews-business", name: "Gulf News", nameAr: "غلف نيوز", home: "https://gulfnews.com", url: "https://gulfnews.com/rss?generatorName=business", section: "markets", lang: "en" },
+  { id: "tradearabia-business", name: "TradeArabia", nameAr: "تريد أرابيا", home: "http://www.tradearabia.com", url: "http://www.tradearabia.com/rss/BUS_0.xml", section: "trade", lang: "en" },
+  { id: "tradearabia-energy", name: "TradeArabia", nameAr: "تريد أرابيا", home: "http://www.tradearabia.com", url: "http://www.tradearabia.com/rss/OGN_0.xml", section: "energy", lang: "en" },
+  { id: "tradearabia-construction", name: "TradeArabia", nameAr: "تريد أرابيا", home: "http://www.tradearabia.com", url: "http://www.tradearabia.com/rss/CONS_0.xml", section: "real-estate", lang: "en" },
+  { id: "zawya-en", name: "Zawya", nameAr: "زاوية", home: "https://www.zawya.com", url: "https://www.zawya.com/en/rss", section: "markets", lang: "en" },
+  { id: "aljazeera-all", name: "Al Jazeera", nameAr: "الجزيرة", home: "https://www.aljazeera.com", url: "https://www.aljazeera.com/xml/rss/all.xml", section: "policy", broad: true, lang: "en" },
 ];
 
 
@@ -267,6 +280,7 @@ export function parseFeed(xml: string, source: Source): NewsItem[] {
       sourceName: source.name,
       sourceNameAr: source.nameAr,
       section: source.section,
+      lang: source.lang,
       image: extractImage(block),
     });
   }
@@ -541,7 +555,7 @@ interface NewsDataArticle {
   source_id?: string;
 }
 
-async function fetchNewsData(timeoutMs: number): Promise<NewsItem[]> {
+async function fetchNewsData(timeoutMs: number, lang: "en" | "ar" = "en"): Promise<NewsItem[]> {
   const key = process.env.NEWSDATA_API_KEY;
   if (!key) return [];
 
@@ -557,9 +571,13 @@ async function fetchNewsData(timeoutMs: number): Promise<NewsItem[]> {
   // Budget: free plan is 200 credits/day and one request costs one credit.
   // At a 15-minute revalidate that is 96/day, comfortably inside it. Shortening
   // the window or paginating for more than 10 stories spends real quota.
+  // language is a parameter now, not a constant. The Arabic edition asks for
+  // `ar` and gets Arabic-language Gulf business copy from the same licensed
+  // source the English edition uses — the alternative was machine-translating
+  // English headlines, which puts words in a publisher's mouth.
   const url =
     `${NEWSDATA_ENDPOINT}?apikey=${encodeURIComponent(key)}` +
-    `&country=sa,ae,qa,kw,bh&category=business&language=en&size=10`;
+    `&country=sa,ae,qa,kw,bh&category=business&language=${lang}&size=10`;
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -591,6 +609,8 @@ async function fetchNewsData(timeoutMs: number): Promise<NewsItem[]> {
         sourceName: name,
         sourceNameAr: name,
         section: "markets",
+        lang,
+        image: a.image_url ?? undefined,
       });
     }
     return out;
@@ -602,12 +622,19 @@ async function fetchNewsData(timeoutMs: number): Promise<NewsItem[]> {
 }
 
 export async function getNews(
-  { sections, limit = 60, timeoutMs = 6000 }: { sections?: Section[]; limit?: number; timeoutMs?: number } = {},
+  {
+    sections,
+    limit = 60,
+    timeoutMs = 6000,
+    lang = "en",
+  }: { sections?: Section[]; limit?: number; timeoutMs?: number; lang?: "en" | "ar" } = {},
 ): Promise<FeedResult> {
-  // Always read every source: a desk is a view over the classified stream, not
-  // a subset of feeds, so Energy stories filed to a general business feed still
-  // reach the Energy page.
-  const chosen = SOURCES;
+  // Read every source *for this edition*. A desk is a view over the classified
+  // stream, not a subset of feeds, so Energy stories filed to a general business
+  // feed still reach the Energy page — but an Arabic reader never sees an
+  // English headline, and vice versa. Fetching only the relevant half also
+  // roughly halves the outbound requests per render.
+  const chosen = SOURCES.filter((s) => s.lang === lang);
 
   const [settled, apiItems] = await Promise.all([
     Promise.all(
@@ -616,7 +643,7 @@ export async function getNews(
         return { source, items, error };
       }),
     ),
-    fetchNewsData(timeoutMs),
+    fetchNewsData(timeoutMs, lang),
   ]);
 
   const failed: string[] = [];
