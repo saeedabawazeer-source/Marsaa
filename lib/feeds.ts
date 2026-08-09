@@ -62,6 +62,23 @@ export interface Source {
    * through the relevance filter below before anything reaches the page.
    */
   broad?: boolean;
+  /**
+   * A dedicated global business/markets/commodities wire — not Gulf-specific,
+   * and not asked to be.
+   *
+   * The relevance gate's geography check (Saudi terms, or Gulf terms from a
+   * business desk) is right for a Gulf portal's default sourcing, but it is
+   * also why the site's news volume had a hard ceiling: dedicated Gulf/Saudi
+   * business feeds are a short list and most of them 403 an aggregator. A
+   * story like "BHP workers strike at Port Hedland" or "Klesch becomes
+   * Germany's second-largest refiner" is real business news that a Gulf
+   * trading desk reads too — it was only ever rejected for lacking the word
+   * "Saudi", not for lacking substance. Sources flagged here skip the
+   * geography check; they still have to clear the business-vocabulary check
+   * and the hard veto list like everything else, so this widens the map, not
+   * the bar.
+   */
+  global?: boolean;
 }
 
 export interface NewsItem {
@@ -171,6 +188,24 @@ export const SOURCES: Source[] = [
   // the cheapest way to test for more without waiting on another probe round.
   { id: "argaam-en-analysts", name: "Argaam", nameAr: "أرقام", home: "https://www.argaam.com", url: "https://www.argaam.com/en/rss/analysts?sectionid=1545", section: "markets", lang: "en", broad: true },
   { id: "argaam-en-articles", name: "Argaam", nameAr: "أرقام", home: "https://www.argaam.com", url: "https://www.argaam.com/en/rss/various-articles?sectionid=1547", section: "markets", lang: "en", broad: true },
+
+  /* ---------------------------------------------------------------- *
+   * GLOBAL WIRES
+   * Gulf-dedicated business feeds are a short list, and most of the rest
+   * 403 an aggregator (see the removal notes above). These three are
+   * Investing.com's own desks — Reuters-sourced, high volume, verified live
+   * on 2026-08-09 with same-day items — and they carry real business news
+   * a Gulf trading desk reads regardless of dateline: OPEC/Hormuz/oil moves,
+   * global M&A, commodity strikes, company earnings. Marked `global` so the
+   * relevance gate's Saudi/Gulf geography check does not apply to them; the
+   * business-vocabulary check and the war/crime/sport veto list still do.
+   * ---------------------------------------------------------------- */
+  { id: "investing-global-markets", name: "Investing.com", nameAr: "إنفيستنج دوت كوم", home: "https://www.investing.com", url: "https://www.investing.com/rss/news_25.rss", section: "markets", lang: "en", global: true },
+  { id: "investing-global-commodities", name: "Investing.com", nameAr: "إنفيستنج دوت كوم", home: "https://www.investing.com", url: "https://www.investing.com/rss/news_11.rss", section: "energy", lang: "en", global: true },
+  { id: "investing-global-companies", name: "Investing.com", nameAr: "إنفيستنج دوت كوم", home: "https://www.investing.com", url: "https://www.investing.com/rss/news_356.rss", section: "markets", lang: "en", global: true },
+  // Al Jazeera's Arabic economy desk — pan-Arab, not Gulf-restricted, and the
+  // Arabic edition's global counterpart to the three feeds above.
+  { id: "aljazeera-ar-economy", name: "Al Jazeera", nameAr: "الجزيرة", home: "https://www.aljazeera.net", url: "https://www.aljazeera.net/aljazeerarss/economy", section: "markets", lang: "ar", global: true },
 ];
 
 /**
@@ -714,7 +749,11 @@ const GULF_TERMS = [
   "عمان", "مسقط", "الخليج", "خليجي", "مجلس التعاون", "اوبك",
 ];
 
-function isRelevant(item: { title: string; summary: string }, broad: boolean): boolean {
+function isRelevant(
+  item: { title: string; summary: string },
+  broad: boolean,
+  global: boolean = false,
+): boolean {
   const hay = fold(`${item.title} ${item.summary}`);
 
   // Veto first. Nothing below can rescue a story this rules out.
@@ -726,6 +765,12 @@ function isRelevant(item: { title: string; summary: string }, broad: boolean): b
     STRONG_BUSINESS_TERMS.some((t) => hay.includes(t)) ||
     (!broad && WEAK_BUSINESS_TERMS.some((t) => hay.includes(t)));
   if (!business) return false;
+
+  // Global wires (Investing.com, Al Jazeera economy) are dedicated business
+  // desks with no Gulf remit and are not asked to have one — the business
+  // check above is the whole gate for them. Everything below this line only
+  // runs for the Gulf-focused sources, where geography still matters.
+  if (global) return true;
 
   const saudi = SAUDI_TERMS.some((t) => hay.includes(t));
   if (saudi) return true;
@@ -884,7 +929,7 @@ export async function getNews(
 
     for (const raw of items) {
       if (Date.parse(raw.publishedAt) < staleBefore) continue;
-      if (!isRelevant(raw, Boolean(source.broad))) continue;
+      if (!isRelevant(raw, Boolean(source.broad), Boolean(source.global))) continue;
 
       const used = perSource.get(source.id) ?? 0;
       if (used >= MAX_PER_SOURCE) continue;
