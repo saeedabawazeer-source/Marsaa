@@ -134,6 +134,20 @@ export const SOURCES: Source[] = [
   { id: "argaam-ar-pulse", name: "Argaam", nameAr: "أرقام", home: "https://www.argaam.com", url: "https://www.argaam.com/ar/rss/ho-market-pulse?sectionid=70", section: "markets", lang: "ar", broad: true },
   { id: "argaam-ar-global", name: "Argaam", nameAr: "أرقام", home: "https://www.argaam.com", url: "https://www.argaam.com/ar/rss/internationmarket-mainnewsar?sectionid=1334", section: "markets", lang: "ar" },
   { id: "argaam-ar-uae", name: "Argaam", nameAr: "أرقام", home: "https://www.argaam.com", url: "https://www.argaam.com/ar/rss/ho-main-news-uae?sectionid=1533", section: "markets", lang: "ar" },
+  // Argaam publishes over a dozen RSS categories beyond the four already
+  // wired above (found in the site's own RSS index while probing, not
+  // guessed). Adding them is what turns each desk from two or three items
+  // into a real page: classify() spreads their content across every desk
+  // regardless of which Argaam category they arrived on, so the fix for a
+  // thin Energy or Trade desk is "more Argaam volume", not "more sources
+  // named Energy". Feeds that turn out sparse or stale are self-limiting —
+  // MAX_ITEM_AGE_DAYS and the relevance gate both still apply.
+  { id: "argaam-ar-analysts", name: "Argaam", nameAr: "أرقام", home: "https://www.argaam.com", url: "https://www.argaam.com/ar/rss/analysts?sectionid=1545", section: "markets", lang: "ar", broad: true },
+  { id: "argaam-ar-articles", name: "Argaam", nameAr: "أرقام", home: "https://www.argaam.com", url: "https://www.argaam.com/ar/rss/various-articles?sectionid=1547", section: "markets", lang: "ar", broad: true },
+  { id: "argaam-ar-conferences", name: "Argaam", nameAr: "أرقام", home: "https://www.argaam.com", url: "https://www.argaam.com/ar/rss/conferences?sectionid=1541", section: "policy", lang: "ar", broad: true },
+  { id: "argaam-ar-saudi-guides", name: "Argaam", nameAr: "أرقام", home: "https://www.argaam.com", url: "https://www.argaam.com/ar/rss/saudi-stocks-investment-guides-ar?sectionid=1591", section: "markets", lang: "ar" },
+  { id: "argaam-ar-global-guides", name: "Argaam", nameAr: "أرقام", home: "https://www.argaam.com", url: "https://www.argaam.com/ar/rss/global-stocks-investment-guides-ar?sectionid=1592", section: "markets", lang: "ar" },
+  { id: "argaam-ar-results-guide", name: "Argaam", nameAr: "أرقام", home: "https://www.argaam.com", url: "https://www.argaam.com/ar/rss/guide-to-financial-results-ar?sectionid=1593", section: "markets", lang: "ar" },
   // Attaqa is the only Arabic source in the set that ships a thumbnail on every
   // item, which is why the Arabic energy desk has art and the others lean on
   // the fallback tile.
@@ -149,6 +163,14 @@ export const SOURCES: Source[] = [
   { id: "agbi-en", name: "AGBI", nameAr: "إيه جي بي آي", home: "https://www.agbi.com", url: "https://www.agbi.com/feed/", section: "markets", lang: "en" },
   { id: "economyme-en", name: "Economy Middle East", nameAr: "إيكونومي ميدل إيست", home: "https://economymiddleeast.com", url: "https://economymiddleeast.com/feed/", section: "markets", lang: "en" },
   { id: "aljazeera-all", name: "Al Jazeera", nameAr: "الجزيرة", home: "https://www.aljazeera.com", url: "https://www.aljazeera.com/xml/rss/all.xml", section: "policy", broad: true, lang: "en" },
+  // English mirrors of the Argaam AR categories added above, on the same
+  // /en/ prefix pattern that argaam-en-main already confirmed works. Not
+  // individually probed — if a given sectionid doesn't exist on the English
+  // side it 404s and fetchOne marks it failed, same as any other dead feed.
+  // The English desks are currently thinner than the Arabic ones and this is
+  // the cheapest way to test for more without waiting on another probe round.
+  { id: "argaam-en-analysts", name: "Argaam", nameAr: "أرقام", home: "https://www.argaam.com", url: "https://www.argaam.com/en/rss/analysts?sectionid=1545", section: "markets", lang: "en", broad: true },
+  { id: "argaam-en-articles", name: "Argaam", nameAr: "أرقام", home: "https://www.argaam.com", url: "https://www.argaam.com/en/rss/various-articles?sectionid=1547", section: "markets", lang: "en", broad: true },
 ];
 
 /**
@@ -159,7 +181,7 @@ export const SOURCES: Source[] = [
  * check that only asks "did it respond". Age is checked per item rather than
  * per feed, because a feed can carry a fresh top and a stale tail.
  */
-const MAX_ITEM_AGE_DAYS = 7;
+const MAX_ITEM_AGE_DAYS = 10;
 
 
 /* ------------------------------------------------------------------ *

@@ -49,7 +49,7 @@ export default async function CategoryPage({ params }: { params: { slug: string 
   const slug = params.slug as Section;
   if (!LABELS[slug]) notFound();
 
-  const news = await getNews({ sections: [slug], limit: 60 });
+  const news = await getNews({ sections: [slug], limit: 100 });
   const sources = Array.from(new Set(news.items.map((i) => i.sourceName))).sort();
 
   return (

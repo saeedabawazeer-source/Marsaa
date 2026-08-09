@@ -42,7 +42,7 @@ const DESKS: Array<{ slug: Section; label: string }> = [
 ];
 
 export default async function HomePage() {
-  const [market, news] = await Promise.all([getMarketSnapshot(), getNews({ limit: 90 })]);
+  const [market, news] = await Promise.all([getMarketSnapshot(), getNews({ limit: 150 })]);
   const now = news.fetchedAt;
 
   const sources = Array.from(new Set(news.items.map((i) => i.sourceName))).sort();

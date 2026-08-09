@@ -32,7 +32,7 @@ export const revalidate = 300;
 const DESKS: Section[] = ["markets", "energy", "real-estate", "trade", "policy"];
 
 export default async function ArabicHomePage() {
-  const [market, news] = await Promise.all([getMarketSnapshot(), getNews({ limit: 90, lang: "ar" })]);
+  const [market, news] = await Promise.all([getMarketSnapshot(), getNews({ limit: 150, lang: "ar" })]);
   const now = news.fetchedAt;
 
   const sources = Array.from(new Set(news.items.map((i) => i.sourceNameAr))).sort();

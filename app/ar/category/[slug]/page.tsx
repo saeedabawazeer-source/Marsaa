@@ -24,7 +24,7 @@ export default async function ArabicCategoryPage({ params }: { params: { slug: s
   const slug = params.slug as Section;
   if (!DESKS.includes(slug)) notFound();
 
-  const news = await getNews({ sections: [slug], limit: 60, lang: "ar" });
+  const news = await getNews({ sections: [slug], limit: 100, lang: "ar" });
   const label = SECTION_STYLES[slug].ar;
   const sources = Array.from(new Set(news.items.map((i) => i.sourceNameAr))).sort();
 
