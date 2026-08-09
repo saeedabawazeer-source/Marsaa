@@ -1,3 +1,14 @@
-# TODO(business): replace with your real AdSense publisher line before launch, e.g.:
-# google.com, pub-0000000000000000, DIRECT, f08c47fec0942fa0
-# See docs/business.md §3 — this file must be correct once AdSense is linked, or ad requests get rejected.
+# Ad network: Ezoic (see components/ui/AdSlot.tsx for why, and the
+# NEXT_PUBLIC_EZOIC_SITE_ID gating that turns the integration on).
+#
+# TODO(business): once the Ezoic account exists and marsa's domain is
+# verified, the Ezoic dashboard generates the exact lines this file needs —
+# they include Ezoic's own entry plus the downstream demand partners running
+# under it, and differ per account. Paste that content here, replacing this
+# file. An ads.txt that doesn't match what the account actually serves is
+# worse than no ads.txt: exchanges treat the mismatch as a fraud signal and
+# stop bidding on the inventory.
+#
+# If AdSense is ever added directly (outside Ezoic) as well, its line goes
+# here too, in the same format Ezoic uses:
+#   google.com, pub-XXXXXXXXXXXXXXXX, DIRECT, f08c47fec0942fa0

@@ -133,6 +133,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     ],
   };
 
+  // Ezoic loader — see components/ui/AdSlot.tsx for the full explanation.
+  // Absent until NEXT_PUBLIC_EZOIC_SITE_ID is set (i.e. until the account
+  // exists and the domain is verified), so there is nothing to remove or
+  // toggle later — the whole integration is either fully present or fully
+  // absent based on one env var.
+  const ezoicSiteId = process.env.NEXT_PUBLIC_EZOIC_SITE_ID;
+
   return (
     <html lang="en">
       <head>
@@ -145,6 +152,33 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="alternate" hrefLang="en" href={absolute("/")} />
         <link rel="alternate" hrefLang="ar" href={absolute("/ar")} />
         <link rel="alternate" hrefLang="x-default" href={absolute("/")} />
+
+        {ezoicSiteId && (
+          <>
+            {/* Ezoic's consent manager. Must load before the main script —
+                order in <head> is the load order here. */}
+            <script src="https://cmp.gatekeeperconsent.com/min.js" data-cfasync="false" async />
+            <script src="https://the.gatekeeperconsent.com/cmp.min.js" data-cfasync="false" async />
+            <script
+              // eslint-disable-next-line react/no-danger
+              dangerouslySetInnerHTML={{
+                __html:
+                  "window.ezstandalone = window.ezstandalone || {}; ezstandalone.cmd = ezstandalone.cmd || [];",
+              }}
+            />
+            <script src="//www.ezojs.com/ezoic/sa.min.js" async />
+            <script
+              // eslint-disable-next-line react/no-danger
+              dangerouslySetInnerHTML={{
+                // No explicit placement IDs: showAds() with no arguments fills
+                // every ezoic-pub-ad-placeholder-* div present on whichever
+                // page loaded, which is what a multi-route site with slots
+                // that don't all appear on every page actually needs.
+                __html: "ezstandalone.cmd.push(function() { ezstandalone.showAds(); });",
+              }}
+            />
+          </>
+        )}
       </head>
       <body className="font-display">
         <script
