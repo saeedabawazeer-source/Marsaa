@@ -14,11 +14,10 @@ const LINKS = [
 
 // Deep-links the language switch to the Arabic equivalent of the current page
 // (not just the Arabic homepage), so /category/energy → /ar/category/energy
-// and /article/slug → /ar/article/slug. Real 1:1 parity means the switch has
-// to land you on the same story, not force you back to the top.
+// and /story/id → /ar/story/id. Real 1:1 parity means the switch has to land
+// you on the same story, not force you back to the top.
 function arabicEquivalent(pathname: string): string {
   if (
-    pathname.startsWith("/article/") ||
     pathname.startsWith("/category/") ||
     pathname.startsWith("/story/") ||
     pathname === "/game" ||

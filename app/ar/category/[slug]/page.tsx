@@ -1,40 +1,68 @@
 import type { Metadata } from "next";
-import { getArticlesByCategory, getLatestArticles } from "@/lib/api";
-import { ArticleCard } from "@/components/ui/Card";
+import { notFound } from "next/navigation";
+import { getNews, type Section } from "@/lib/feeds";
+import { NewsStream } from "@/components/ui/NewsStream";
+import { NewsCard } from "@/components/ui/NewsCard";
 import { AdSlot } from "@/components/ui/AdSlot";
+import { fmtClock } from "@/lib/time";
 import { CATEGORY_LABELS_AR } from "@/lib/labels";
-import type { Category } from "@/lib/types";
 
-// Real 1:1 mirror of app/(main)/category/[slug]/page.tsx.
-export async function generateStaticParams() {
-  const articles = await getLatestArticles();
-  const cats = Array.from(new Set(articles.map((a) => a.category)));
-  return cats.map((slug) => ({ slug }));
+const DESKS: Section[] = ["markets", "energy", "real-estate", "trade", "policy"];
+
+export const revalidate = 300;
+
+export function generateStaticParams() {
+  return DESKS.map((slug) => ({ slug }));
 }
 
 export function generateMetadata({ params }: { params: { slug: string } }): Metadata {
-  const label = CATEGORY_LABELS_AR[params.slug as Category] ?? params.slug;
-  return { title: label, description: `أخبار ${label} من مرسى — أخبار الأعمال في الشرق الأوسط، من جدة.` };
+  const label = CATEGORY_LABELS_AR[params.slug as Section] ?? params.slug;
+  return { title: label, description: `أخبار ${label} من مصادر الخليج، يجمعها مرسى.` };
 }
 
 export default async function ArabicCategoryPage({ params }: { params: { slug: string } }) {
-  const articles = await getArticlesByCategory(params.slug);
-  const label = CATEGORY_LABELS_AR[params.slug as Category] ?? params.slug;
+  const slug = params.slug as Section;
+  if (!DESKS.includes(slug)) notFound();
+
+  const news = await getNews({ sections: [slug], limit: 60 });
+  const label = CATEGORY_LABELS_AR[slug] ?? slug;
+  const sources = Array.from(new Set(news.items.map((i) => i.sourceNameAr))).sort();
+  const [lead, ...rest] = news.items;
+  const grid = rest.slice(0, 6);
 
   return (
-    <section className="mx-auto max-w-[1100px] px-6 py-12" dir="rtl">
-      <h1 className="mb-6 text-2xl font-bold">{label}</h1>
-      {articles.length === 0 ? (
-        <p className="text-gray-600">لا توجد أخبار في قسم {label} بعد — تابعونا قريباً.</p>
+    <section dir="rtl" className="mx-auto max-w-[1240px] px-4 py-9 sm:px-6">
+      <header className="mb-6 border-b-2 border-ink pb-3">
+        <h1 className="text-2xl font-bold">{label}</h1>
+        <p className="mt-1 font-mono text-[11px] text-gray-500">
+          {news.items.length > 0
+            ? `${news.items.length} خبراً · ${sources.length} مصادر · حُدّث ${fmtClock(news.fetchedAt)}`
+            : `لا أخبار في هذا القسم حالياً · آخر محاولة ${fmtClock(news.fetchedAt)}`}
+        </p>
+      </header>
+
+      {news.items.length === 0 ? (
+        <p className="rounded-lg border-2 border-dashed border-gray-300 px-4 py-12 text-center text-sm text-gray-500">
+          لم يصل جديد إلى هذا القسم منذ آخر تحديث. هذه صفحة حيّة وتمتلئ فور نشر أي مصدر.
+        </p>
       ) : (
-        <div className="grid gap-5 md:grid-cols-3">
-          {articles.map((a) => (
-            <ArticleCard key={a.slug} article={a} lang="ar" />
-          ))}
-        </div>
+        <>
+          {lead && <NewsCard item={lead} now={news.fetchedAt} big lang="ar" />}
+          {grid.length > 0 && (
+            <div className="mt-7 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {grid.map((i) => (
+                <NewsCard key={i.id} item={i} now={news.fetchedAt} lang="ar" />
+              ))}
+            </div>
+          )}
+          <div className="mt-10">
+            <NewsStream items={news.items} now={news.fetchedAt} sources={sources} lang="ar" />
+          </div>
+        </>
       )}
+
       <div className="mt-10">
-        <AdSlot lang="ar" />
+        <AdSlot />
       </div>
     </section>
   );
