@@ -197,16 +197,49 @@ function decodeEntities(input: string): string {
   });
 }
 
-/** Feed summaries routinely carry markup, tracking pixels and inline styles. */
+/**
+ * Feed summaries routinely carry markup, tracking pixels and inline styles.
+ *
+ * The order here is the whole trick, and getting it wrong is what put raw
+ * `<p class="ckeCaption"><img src=...>` into live Arabic headlines. Argaam
+ * double-encodes: the description is HTML, that HTML is entity-escaped, and the
+ * result is wrapped in CDATA. Stripping tags first does nothing — at that point
+ * there are no tags, only `&lt;p&gt;` — and the decode that followed then
+ * *created* the markup, after the only thing that would have removed it had
+ * already run.
+ *
+ * So this decodes and strips in a loop until the string stops changing. Two
+ * passes covers every feed in the registry; the cap is there because a
+ * pathological input could otherwise alternate forever.
+ */
 function stripHtml(input: string): string {
-  return decodeEntities(
-    input
-      .replace(/<script[\s\S]*?<\/script>/gi, "")
-      .replace(/<style[\s\S]*?<\/style>/gi, "")
-      .replace(/<[^>]+>/g, " "),
-  )
-    .replace(/\s+/g, " ")
-    .trim();
+  // Strict: a tag is `<`, an optional `/`, then a letter. That distinction
+  // matters — a naive /<[^>]*>/ also eats real prose: "profit &lt; expected"
+  // decodes to "profit < expected" mid-loop, and a loose match then treats
+  // that "<" as a tag opener and deletes the rest of the sentence. Business
+  // copy contains "<" as arithmetic often enough that this is a correctness
+  // issue, not a nicety.
+  const TAG = /<\/?[a-zA-Z][a-zA-Z0-9-]*(?:\s[^<>]*)?\/?>/g;
+
+  let out = input;
+
+  for (let pass = 0; pass < 3; pass++) {
+    const before = out;
+    out = out
+      .replace(/<!--[\s\S]*?-->/g, " ")
+      .replace(/<script[\s\S]*?<\/script>/gi, " ")
+      .replace(/<style[\s\S]*?<\/style>/gi, " ")
+      .replace(TAG, " ");
+    out = decodeEntities(out);
+    if (out === before) break;
+  }
+
+  // A tag opened but never closed, which is what a truncated feed summary
+  // leaves behind: "…profit rose <img src="htt. Anchored to the end so it
+  // cannot touch anything earlier in the sentence.
+  out = out.replace(/<\/?[a-zA-Z][^<>]*$/, " ");
+
+  return out.replace(/\s+/g, " ").trim();
 }
 
 function unwrapCdata(input: string): string {
@@ -421,6 +454,25 @@ function fold(input: string): string {
 }
 
 const DESK_RULES: Array<{ section: Section; terms: string[] }> = [
+  {
+    /**
+     * Statute, checked before everything else.
+     *
+     * A law is a Policy story even when its subject is money, and Arabic
+     * regulatory copy is full of financial nouns: "نظام إيرادات الدولة" (the
+     * State Revenues Law) matched "إيرادات" and landed on Markets, which is how
+     * the live Arabic Policy desk showed a count of zero while three gazette
+     * items sat under Markets. These terms name the *instrument*, not the
+     * topic, so they are unambiguous and go first.
+     */
+    section: "policy",
+    terms: [
+      "الجريده الرسميه", "نظام ", "لائحه", "اللائحه", "القواعد الموحده", "مجلس الوزراء",
+      "مرسوم ملكي", "امر ملكي", "قرار وزاري", "وافق عليه مجلس", "تعديل نظام", "مشروع نظام",
+      "official gazette", "royal decree", "cabinet approved", "council of ministers",
+      "draft law", "implementing regulations", "bylaw",
+    ],
+  },
   {
     section: "energy",
     terms: ["oil", "crude", "brent", "opec", "petrol", "gas", "lng", "refinery", "refining", "barrel",
