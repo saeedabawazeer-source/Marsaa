@@ -247,9 +247,23 @@ export function NewsStream({
         </div>
       </div>
 
-      {/* Stream */}
+      {/* Stream.
+
+          Two things fixed here. First, dashed dividers throughout — a dotted
+          rule reads as a receipt or a to-do list, not a business wire; every
+          divider is now a solid hairline instead.
+
+          Second, and the actual "scroll is ugly" bug: the day-bucket header
+          was `sticky top-0` inside a page that scrolls as a whole, not inside
+          its own scroll container. With no offset for the site nav above it,
+          each new bucket snapped to the very top of the viewport and either
+          fought the nav for the same pixels or hard-cut the previous bucket
+          off mid-frame as the next one shoved in — visible jank on every
+          scroll, worse the more day-boundaries a session has scrolled past.
+          It's a static section label now: still marks the boundary, doesn't
+          fight anything on the way past. */}
       {filtered.length === 0 ? (
-        <p className="rounded border-2 border-dashed border-gray-300 px-4 py-10 text-center text-sm text-gray-500">
+        <p className="rounded border-2 border-gray-300 px-4 py-10 text-center text-sm text-gray-500">
           {onlySaved
             ? isAr
               ? "لا توجد عناصر محفوظة."
@@ -259,7 +273,7 @@ export function NewsStream({
               : "No headlines match that."}
         </p>
       ) : (
-        <ol className="divide-y-2 divide-dashed divide-gray-200 border-t-2 border-dashed border-gray-200">
+        <ol className="divide-y divide-gray-200 border-t-2 border-ink">
           {filtered.map((item, i) => {
             const bucket = dayBucket(item.publishedAt, now, lang);
             const showBucket = bucket !== currentBucket;
@@ -270,8 +284,9 @@ export function NewsStream({
             return (
               <li key={item.id} className={showBucket ? "pt-1" : ""}>
                 {showBucket && (
-                  <h3 className="sticky top-0 z-10 -mx-1 bg-paper/95 px-1 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-teal-dark backdrop-blur">
+                  <h3 className="mb-1 mt-2 flex items-center gap-2 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-teal-dark first:mt-0">
                     {bucket}
+                    <span aria-hidden className="h-px flex-1 bg-gray-200" />
                   </h3>
                 )}
                 <div className={`flex items-start gap-3 ${density === "compact" ? "py-2" : "py-3.5"}`}>
