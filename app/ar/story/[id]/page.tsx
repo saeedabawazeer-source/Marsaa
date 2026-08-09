@@ -7,6 +7,7 @@ import { SubscribeForm } from "@/components/ui/SubscribeForm";
 import { Thumb } from "@/components/ui/Thumb";
 import { fmtDateline } from "@/lib/time";
 import { CATEGORY_LABELS_AR } from "@/lib/labels";
+import { absolute } from "@/lib/site";
 
 /** Arabic mirror of the in-app preview — same data, same boundary. */
 export const revalidate = 300;
@@ -17,7 +18,7 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
-  const { item } = await getItemById(params.id);
+  const { item } = await getItemById(params.id, "ar");
   if (!item) return { title: "خبر" };
   return {
     title: `${item.title} — عبر ${item.sourceNameAr}`,
@@ -27,7 +28,7 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
 }
 
 export default async function ArabicStoryPage({ params }: { params: { id: string } }) {
-  const { item, url } = await getItemById(params.id);
+  const { item, url } = await getItemById(params.id, "ar");
 
   if (!item) {
     return (
@@ -55,8 +56,37 @@ export default async function ArabicStoryPage({ params }: { params: { id: string
   const fill = same.length < 3 ? news.items.filter((i) => i.id !== item.id && !same.includes(i)).slice(0, 3 - same.length) : [];
   const related = [...same, ...fill];
 
+  // See app/(main)/story/[id]/page.tsx for why `author` names the publisher,
+  // never Marsa — same reasoning, Arabic edition.
+  const articleLd = {
+    "@context": "https://schema.org",
+    "@type": "NewsArticle",
+    headline: item.title,
+    description: item.summary || undefined,
+    image: item.image ? [item.image] : undefined,
+    datePublished: item.publishedAt,
+    dateModified: item.publishedAt,
+    url: absolute(`/ar/story/${item.id}`),
+    mainEntityOfPage: absolute(`/ar/story/${item.id}`),
+    isBasedOn: item.link,
+    sameAs: item.link,
+    author: { "@type": "Organization", name: item.sourceNameAr, url: item.link },
+    publisher: {
+      "@type": "NewsMediaOrganization",
+      name: "مرسى",
+      logo: { "@type": "ImageObject", url: absolute("/icon-512.png") },
+    },
+    articleSection: item.section,
+    inLanguage: "ar",
+  };
+
   return (
     <article dir="rtl">
+      <script
+        type="application/ld+json"
+        // eslint-disable-next-line react/no-danger
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleLd) }}
+      />
       <div className="border-b-4 border-inkBorder">
         <Thumb
           src={item.image}
@@ -119,7 +149,7 @@ export default async function ArabicStoryPage({ params }: { params: { id: string
         </section>
       )}
 
-      <AdSlot />
+      <AdSlot lang="ar" />
     </article>
   );
 }

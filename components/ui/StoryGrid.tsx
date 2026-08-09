@@ -1,5 +1,7 @@
+import { Fragment } from "react";
 import type { NewsItem } from "@/lib/feeds";
 import { NewsCard } from "./NewsCard";
+import { AdSlot } from "./AdSlot";
 
 /**
  * The front-of-desk layout, in one place.
@@ -66,8 +68,15 @@ export function StoryGrid({
       </div>
 
       <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        {grid.map((i) => (
-          <NewsCard key={i.id} item={i} now={now} lang={lang} />
+        {grid.map((i, idx) => (
+          <Fragment key={i.id}>
+            <NewsCard item={i} now={now} lang={lang} />
+            {/* One native slot per six-card grid, positioned as a peer of the
+                cards around it rather than tacked onto the end — a slot at
+                position 3 of 6 gets seen by everyone who scrolls the section,
+                not just the minority who reach the bottom. */}
+            {idx === 2 && grid.length > 3 && <AdSlot variant="native" lang={lang} />}
+          </Fragment>
         ))}
       </div>
     </>

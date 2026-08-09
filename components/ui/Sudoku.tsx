@@ -241,11 +241,16 @@ export function Sudoku({ lang = "en" }: { lang?: "en" | "ar" }) {
 
   return (
     <section dir={isAr ? "rtl" : "ltr"} className="mx-auto w-full max-w-[520px] px-3 sm:px-0">
-      {/* Masthead. Mono metadata line = the "data" register from the type rules. */}
-      <header className="mb-4 text-center">
-        <h1 className="font-display text-2xl font-bold leading-tight sm:text-3xl">{t.title}</h1>
-        <p className="mx-auto mt-1 max-w-[38ch] text-[13px] leading-relaxed text-gray-600 sm:text-sm">{t.sub}</p>
-        <p className="mt-2 flex items-center justify-center gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-gray-500">
+      {/* Masthead. Mono metadata line = the "data" register from the type rules.
+          The subtitle is hidden below sm: on a short phone viewport, the
+          number pad has to be reachable without scrolling, and a sentence of
+          copy is the cheapest thing to cut to buy that back — the puzzle
+          number, difficulty and timer are the parts a returning player
+          actually reads. */}
+      <header className="mb-2.5 text-center sm:mb-4">
+        <h1 className="font-display text-xl font-bold leading-tight sm:text-3xl">{t.title}</h1>
+        <p className="mx-auto mt-1 hidden max-w-[38ch] text-[13px] leading-relaxed text-gray-600 sm:block sm:text-sm">{t.sub}</p>
+        <p className="mt-1.5 flex items-center justify-center gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-gray-500 sm:mt-2">
           <span>
             {t.puzzle} #{puzzle.n}
           </span>
@@ -258,8 +263,22 @@ export function Sudoku({ lang = "en" }: { lang?: "en" | "ar" }) {
 
       {/* The grid. aspect-square + a 9-col grid means it scales with the
           viewport instead of being pinned to a pixel size that only works on
-          one phone. */}
-      <div className="mx-auto grid aspect-square w-full grid-cols-9 overflow-hidden rounded-lg border-[3px] border-inkBorder bg-white shadow-[0_4px_0_0_rgba(26,26,26,0.9)]">
+          one phone.
+
+          The bug this fixes: sizing purely off width meant the grid was as
+          tall as the phone is wide, and on a short viewport (a real phone
+          with the browser's address bar still showing, not the full device
+          height devtools reports) that alone pushed the number pad below the
+          fold — reachable only by scrolling, which is what "have to scroll to
+          see the keyboard" was. `min()` bounds the grid by 56% of the *visual*
+          viewport height as well as by width, so header + grid + controls +
+          pad fit together on the phones that were failing, and the grid
+          simply stops growing past 480px on anything larger rather than
+          ballooning on a tall/narrow window. */}
+      <div
+        className="mx-auto grid grid-cols-9 overflow-hidden rounded-lg border-[3px] border-inkBorder bg-white shadow-[0_4px_0_0_rgba(26,26,26,0.9)]"
+        style={{ width: "min(100%, 56dvh, 480px)", aspectRatio: "1 / 1" }}
+      >
         {cells.map((cell, i) => {
           const row = Math.floor(i / 9);
           const col = i % 9;

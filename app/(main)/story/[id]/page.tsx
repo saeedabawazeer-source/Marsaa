@@ -6,6 +6,7 @@ import { AdSlot } from "@/components/ui/AdSlot";
 import { SubscribeForm } from "@/components/ui/SubscribeForm";
 import { Thumb } from "@/components/ui/Thumb";
 import { fmtDateline } from "@/lib/time";
+import { absolute } from "@/lib/site";
 
 /**
  * The in-app story preview.
@@ -32,7 +33,7 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
-  const { item } = await getItemById(params.id);
+  const { item } = await getItemById(params.id, "en");
   if (!item) return { title: "Story" };
   return {
     title: `${item.title} — via ${item.sourceName}`,
@@ -48,7 +49,7 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
 }
 
 export default async function StoryPage({ params }: { params: { id: string } }) {
-  const { item, url } = await getItemById(params.id);
+  const { item, url } = await getItemById(params.id, "en");
 
   // The story has aged off every feed we read. Say that plainly and still hand
   // over the link, rather than showing a 404 for something that did exist.
@@ -87,8 +88,46 @@ export default async function StoryPage({ params }: { params: { id: string } }) 
   const fill = sameSection.length < 3 ? news.items.filter((i) => i.id !== item.id && !sameSection.includes(i)).slice(0, 3 - sameSection.length) : [];
   const related = [...sameSection, ...fill];
 
+  /**
+   * Structured data for a preview page, not an original article.
+   *
+   * `author` names the publisher that actually reported this — Argaam, Arab
+   * News, whoever the feed credited — never Marsa, because Marsa didn't write
+   * it. `isBasedOn` / `sameAs` point at their URL, which is the same
+   * attribution the visible page makes, just machine-readable. Claiming
+   * `author: Marsa` on syndicated copy would be asserting authorship Marsa
+   * doesn't have, and Google's guidance on scraped/aggregated content
+   * specifically penalises exactly that misrepresentation.
+   */
+  const articleLd = {
+    "@context": "https://schema.org",
+    "@type": "NewsArticle",
+    headline: item.title,
+    description: item.summary || undefined,
+    image: item.image ? [item.image] : undefined,
+    datePublished: item.publishedAt,
+    dateModified: item.publishedAt,
+    url: absolute(`/story/${item.id}`),
+    mainEntityOfPage: absolute(`/story/${item.id}`),
+    isBasedOn: item.link,
+    sameAs: item.link,
+    author: { "@type": "Organization", name: item.sourceName, url: item.link },
+    publisher: {
+      "@type": "NewsMediaOrganization",
+      name: "Marsa",
+      logo: { "@type": "ImageObject", url: absolute("/icon-512.png") },
+    },
+    articleSection: item.section,
+    inLanguage: "en",
+  };
+
   return (
     <article>
+      <script
+        type="application/ld+json"
+        // eslint-disable-next-line react/no-danger
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleLd) }}
+      />
       {/* Always a hero. Previously this rendered only when item.image existed,
           so image-less stories opened on a wall of text, and image-present-but-
           broken stories opened on a black band (the bg-ink behind the <img>).

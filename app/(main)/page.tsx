@@ -184,6 +184,9 @@ export default async function HomePage() {
                   </li>
                 ))}
               </ol>
+              <div className="mt-6">
+                <AdSlot variant="rectangle" />
+              </div>
             </aside>
           )}
         </div>

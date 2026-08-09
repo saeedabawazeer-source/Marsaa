@@ -231,10 +231,16 @@ export function DailyGame({ lang = "en" }: { lang?: Lang }) {
 
   return (
     <section dir={isAr ? "rtl" : "ltr"} className="mx-auto w-full max-w-[420px]">
-      <header className="mb-4 text-center">
-        <h2 className="font-display text-2xl font-bold">{t.title}</h2>
-        <p className="mx-auto mt-1 max-w-[36ch] text-[13px] leading-relaxed text-gray-600">{t.blurb}</p>
-        <p className="mt-2 flex items-center justify-center gap-2 font-mono text-[10px] uppercase tracking-[0.12em] text-gray-500">
+      {/* mb-4 -> mb-2 and the blurb hidden below sm: for the same reason as
+          Sudoku's header trim: on a short phone viewport the on-screen
+          keyboard has to be reachable without scrolling, and the Arabic
+          keyboard in particular has ~28 keys against the Latin layout's ~26
+          across three tight rows, so it wraps taller and has less headroom
+          to spare. */}
+      <header className="mb-2 text-center sm:mb-4">
+        <h2 className="font-display text-xl font-bold sm:text-2xl">{t.title}</h2>
+        <p className="mx-auto mt-1 hidden max-w-[36ch] text-[13px] leading-relaxed text-gray-600 sm:block">{t.blurb}</p>
+        <p className="mt-1.5 flex items-center justify-center gap-2 font-mono text-[10px] uppercase tracking-[0.12em] text-gray-500 sm:mt-2">
           <span>
             {t.puzzle} #{n}
           </span>
@@ -249,8 +255,16 @@ export function DailyGame({ lang = "en" }: { lang?: Lang }) {
         </p>
       </header>
 
-      {/* Board */}
-      <div className="mb-4 grid gap-1.5" role="grid" aria-label={t.title}>
+      {/* Board. Width-bounded by viewport height (not just width) for the same
+          reason as Sudoku's grid — six aspect-square rows at an uncapped width
+          is tall enough on its own to push the keyboard below the fold on a
+          short phone viewport. */}
+      <div
+        className="mx-auto mb-3 grid gap-1.5 sm:mb-4"
+        style={{ width: "min(100%, 48dvh, 420px)" }}
+        role="grid"
+        aria-label={t.title}
+      >
         {rows.map((row, r) => (
           <div key={r} className="grid grid-cols-5 gap-1.5" role="row">
             {row.map((cell, i) => (
@@ -273,7 +287,7 @@ export function DailyGame({ lang = "en" }: { lang?: Lang }) {
       </div>
 
       {/* Status */}
-      <div className="mb-4 min-h-[52px] text-center" aria-live="polite">
+      <div className="mb-2 min-h-[36px] text-center sm:mb-4 sm:min-h-[52px]" aria-live="polite">
         {note && <p className="font-mono text-[11px] font-bold uppercase tracking-wide text-accent-dark">{note}</p>}
         {done && (
           <div>
@@ -292,13 +306,19 @@ export function DailyGame({ lang = "en" }: { lang?: Lang }) {
         )}
       </div>
 
-      {/* Keyboard */}
+      {/* Keyboard. The Arabic alphabet is ~28 letters against the Latin
+          layout's 26 across three fixed rows, so `flex-wrap` folds it into 4-5
+          rows at the same key size — that extra height, stacked on top of the
+          board, was the actual cause of "have to scroll to see the keyboard".
+          Keys are smaller by default and only grow at sm:, and the Arabic
+          layout gets an even tighter mobile size than the Latin one since it
+          has more of them to fit. */}
       {!done && (
-        <div className="select-none space-y-1.5">
+        <div className="select-none space-y-1 sm:space-y-1.5">
           {isAr ? (
             <div className="flex flex-wrap justify-center gap-1">
               {AR_ALPHABET.map((ch) => (
-                <Key key={ch} ch={ch} mark={keyState[ch]} onPress={press} />
+                <Key key={ch} ch={ch} mark={keyState[ch]} onPress={press} dense />
               ))}
             </div>
           ) : (
@@ -314,14 +334,14 @@ export function DailyGame({ lang = "en" }: { lang?: Lang }) {
             <button
               type="button"
               onClick={submit}
-              className="rounded border-2 border-inkBorder bg-ink px-5 py-2.5 font-mono text-[11px] font-bold uppercase tracking-wide text-paper transition hover:bg-teal-dark"
+              className="rounded border-2 border-inkBorder bg-ink px-4 py-2 font-mono text-[11px] font-bold uppercase tracking-wide text-paper transition hover:bg-teal-dark sm:px-5 sm:py-2.5"
             >
               {t.enter}
             </button>
             <button
               type="button"
               onClick={back}
-              className="rounded border-2 border-inkBorder bg-white px-5 py-2.5 font-mono text-[11px] font-bold uppercase tracking-wide transition hover:bg-paper"
+              className="rounded border-2 border-inkBorder bg-white px-4 py-2 font-mono text-[11px] font-bold uppercase tracking-wide transition hover:bg-paper sm:px-5 sm:py-2.5"
             >
               {t.del}
             </button>
@@ -336,19 +356,22 @@ function Key({
   ch,
   mark,
   onPress,
+  dense = false,
 }: {
   ch: string;
   mark?: Mark;
   onPress: (ch: string) => void;
+  /** The Arabic layout: smaller by default so ~28 keys cost fewer wrapped rows. */
+  dense?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={() => onPress(ch)}
       aria-label={ch}
-      className={`h-11 min-w-[30px] rounded border-2 px-2 text-sm font-bold uppercase transition active:translate-y-px ${
-        mark ? MARK_STYLES[mark] : "border-inkBorder bg-white hover:bg-paper"
-      }`}
+      className={`rounded border-2 font-bold uppercase transition active:translate-y-px ${
+        dense ? "h-9 min-w-[26px] px-1.5 text-xs sm:h-11 sm:min-w-[30px] sm:px-2 sm:text-sm" : "h-10 min-w-[28px] px-2 text-sm sm:h-11 sm:min-w-[30px]"
+      } ${mark ? MARK_STYLES[mark] : "border-inkBorder bg-white hover:bg-paper"}`}
     >
       {ch}
     </button>

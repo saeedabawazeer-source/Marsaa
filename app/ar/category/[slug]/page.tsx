@@ -56,7 +56,7 @@ export default async function ArabicCategoryPage({ params }: { params: { slug: s
       )}
 
       <div className="mt-10">
-        <AdSlot />
+        <AdSlot lang="ar" />
       </div>
     </section>
   );

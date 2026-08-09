@@ -308,17 +308,35 @@ function extractLink(block: string): string | null {
  * it is the picture doing the same job as the headline, not a substitute for
  * visiting the article.
  */
+/**
+ * Argaam's `<description>` is HTML that has itself been entity-escaped —
+ * `&lt;img src=&quot;...&quot;&gt;` rather than `<img src="...">` — the same
+ * double-encoding that corrupted summary text before stripHtml was fixed to
+ * loop. The image search has the identical problem for the identical reason:
+ * on the raw block there is no `<img` substring to find, only `&lt;img`, so
+ * every Argaam item — the single largest source in the registry — was
+ * silently falling back to the coloured placeholder tile despite every one of
+ * its items carrying a real photo. This is what "Arabic has no real media"
+ * actually was.
+ *
+ * Fix: search the raw block first (cheap, correct for every normally-encoded
+ * feed), and only decode-and-retry when that comes up empty.
+ */
 function extractImage(block: string): string | undefined {
-  const media = block.match(/<(?:[a-zA-Z0-9]+:)?(?:content|thumbnail)\b[^>]*\burl=["']([^"']+)["']/i);
-  if (media) return decodeEntities(media[1]);
+  const search = (b: string): string | undefined => {
+    const media = b.match(/<(?:[a-zA-Z0-9]+:)?(?:content|thumbnail)\b[^>]*\burl=["']([^"']+)["']/i);
+    if (media) return decodeEntities(media[1]);
 
-  const enclosure = block.match(/<enclosure\b[^>]*\burl=["']([^"']+)["'][^>]*>/i);
-  if (enclosure && /\.(jpe?g|png|webp|avif)/i.test(enclosure[1])) return decodeEntities(enclosure[1]);
+    const enclosure = b.match(/<enclosure\b[^>]*\burl=["']([^"']+)["'][^>]*>/i);
+    if (enclosure && /\.(jpe?g|png|webp|avif)/i.test(enclosure[1])) return decodeEntities(enclosure[1]);
 
-  const inline = block.match(/<img\b[^>]*\bsrc=["']([^"']+)["']/i);
-  if (inline) return decodeEntities(inline[1]);
+    const inline = b.match(/<img\b[^>]*\bsrc=["']([^"']+)["']/i);
+    if (inline) return decodeEntities(inline[1]);
 
-  return undefined;
+    return undefined;
+  };
+
+  return search(block) ?? search(decodeEntities(block));
 }
 
 function parseDate(block: string): string | null {
@@ -927,9 +945,23 @@ export function decodeItemId(id: string): string | null {
  * preview link can legitimately go stale. When that happens the route says so
  * and offers the publisher URL rather than pretending the story never existed.
  */
-export async function getItemById(id: string): Promise<{ item: NewsItem | null; url: string | null }> {
+export async function getItemById(
+  id: string,
+  lang: "en" | "ar" = "en",
+): Promise<{ item: NewsItem | null; url: string | null }> {
   const url = decodeItemId(id);
   if (!url) return { item: null, url: null };
-  const news = await getNews({ limit: 400 });
-  return { item: news.items.find((i) => i.id === id) ?? null, url };
+
+  // Bug this fixes: getNews() defaults to lang: "en", so before `lang` was a
+  // parameter here every /ar/story/[id] lookup searched the English pool only
+  // — every Arabic story preview page 404'd regardless of how correct the
+  // link that led to it was. Requested language is searched first; the other
+  // pool is a fallback rather than the only path, in case a link ever crosses
+  // editions.
+  const primary = await getNews({ limit: 400, lang });
+  const hit = primary.items.find((i) => i.id === id);
+  if (hit) return { item: hit, url };
+
+  const other = await getNews({ limit: 400, lang: lang === "ar" ? "en" : "ar" });
+  return { item: other.items.find((i) => i.id === id) ?? null, url };
 }

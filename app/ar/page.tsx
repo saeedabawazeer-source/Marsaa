@@ -160,6 +160,9 @@ export default async function ArabicHomePage() {
                   </li>
                 ))}
               </ol>
+              <div className="mt-6">
+                <AdSlot variant="rectangle" lang="ar" />
+              </div>
             </aside>
           )}
         </div>
@@ -179,7 +182,7 @@ export default async function ArabicHomePage() {
         <SubscribeForm lang="ar" />
       </div>
 
-      <AdSlot />
+      <AdSlot lang="ar" />
     </div>
   );
 }
