@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getNews, type Section } from "@/lib/feeds";
 import { NewsStream } from "@/components/ui/NewsStream";
-import { NewsCard } from "@/components/ui/NewsCard";
+import { StoryGrid } from "@/components/ui/StoryGrid";
+import { SectionChip } from "@/lib/sections";
 import { AdSlot } from "@/components/ui/AdSlot";
 import { fmtClock } from "@/lib/time";
 
@@ -50,13 +51,14 @@ export default async function CategoryPage({ params }: { params: { slug: string 
 
   const news = await getNews({ sections: [slug], limit: 60 });
   const sources = Array.from(new Set(news.items.map((i) => i.sourceName))).sort();
-  const [lead, ...rest] = news.items;
-  const grid = rest.slice(0, 6);
 
   return (
     <section className="mx-auto max-w-[1240px] px-4 py-9 sm:px-6">
       <header className="mb-6 border-b-2 border-ink pb-3">
-        <h1 className="text-2xl font-bold sm:text-3xl">{LABELS[slug]}</h1>
+        <div className="flex items-center gap-2.5">
+          <SectionChip slug={slug} size="md" solid />
+          <h1 className="text-2xl font-bold sm:text-3xl">{LABELS[slug]}</h1>
+        </div>
         <p className="mt-1 max-w-[60ch] text-[15px] text-gray-600">{BLURBS[slug]}</p>
         <p className="mt-2 font-mono text-[11px] uppercase tracking-wide text-gray-500">
           {news.items.length > 0
@@ -72,14 +74,7 @@ export default async function CategoryPage({ params }: { params: { slug: string 
         </p>
       ) : (
         <>
-          {lead && <NewsCard item={lead} now={news.fetchedAt} big />}
-          {grid.length > 0 && (
-            <div className="mt-7 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {grid.map((i) => (
-                <NewsCard key={i.id} item={i} now={news.fetchedAt} />
-              ))}
-            </div>
-          )}
+          <StoryGrid items={news.items} now={news.fetchedAt} />
           <div className="mt-10">
             <NewsStream items={news.items} now={news.fetchedAt} sources={sources} />
           </div>

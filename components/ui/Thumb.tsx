@@ -23,13 +23,7 @@ import type { Section } from "@/lib/feeds";
  * their own feed. Hotlinking is what an RSS reader does; re-hosting is not.
  */
 
-const DESK_TINT: Record<Section, string> = {
-  markets: "bg-teal",
-  energy: "bg-accent",
-  "real-estate": "bg-accent-dark",
-  trade: "bg-ink",
-  policy: "bg-teal-dark",
-};
+import { SECTION_STYLES } from "@/lib/sections";
 
 export function Thumb({
   src,
@@ -53,12 +47,29 @@ export function Thumb({
   const usable = src && /^https:\/\//i.test(src) && !failed;
 
   if (!usable) {
+    // Most Arabic publishers ship no thumbnail at all, so this is the common
+    // case on /ar rather than a rare error. It is drawn as a deliberate desk
+    // plate — icon, hairline rule, publisher name — instead of a coloured
+    // rectangle with text dropped on it.
+    const style = SECTION_STYLES[section];
+    const DeskIcon = style.icon;
     return (
       <div
-        className={`flex items-center justify-center overflow-hidden ${DESK_TINT[section]} ${className}`}
+        className={`relative flex flex-col items-center justify-center gap-2 overflow-hidden ${className}`}
+        style={{ backgroundColor: style.hex }}
         aria-hidden
       >
-        <span className="px-3 text-center font-mono text-[10px] font-bold uppercase leading-tight tracking-[0.14em] text-paper/85">
+        <div
+          className="absolute inset-0 opacity-[0.16]"
+          style={{
+            backgroundImage:
+              "repeating-linear-gradient(135deg, rgba(255,255,255,.9) 0 1px, transparent 1px 11px)",
+          }}
+        />
+        <span className="relative text-white/90">
+          <DeskIcon size={26} />
+        </span>
+        <span className="relative max-w-[85%] truncate px-2 text-center font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-white/85">
           {source}
         </span>
       </div>

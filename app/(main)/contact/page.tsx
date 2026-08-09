@@ -29,7 +29,7 @@ export default function ContactPage() {
         <div className="rounded border-[3px] border-inkBorder bg-paper p-5">
           <div className="mb-1 font-mono text-xs uppercase tracking-wide text-teal-dark">Advertising</div>
           <a href="/advertise" className="text-sm font-medium hover:text-accent-light">
-            See advertise page →
+            See advertise page
           </a>
         </div>
       </div>

@@ -1,21 +1,40 @@
-<svg width="230" height="64" viewBox="0 0 230 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Marsa logo">
-  <defs>
-    <clipPath id="marsaSqLg">
-      <rect x="6" y="6" width="52" height="52" rx="8" />
-    </clipPath>
-  </defs>
-  <g transform="rotate(-5 32 32)">
-    <rect x="10" y="10" width="52" height="52" rx="8" fill="#07514D" />
-    <g clip-path="url(#marsaSqLg)">
-      <rect x="6" y="6" width="52" height="52" fill="#C8912B" />
-      <path d="M6,34 C20,26 38,42 58,30 L58,58 L6,58 Z" fill="#0B7A75" />
-    </g>
-    <rect x="6" y="6" width="52" height="52" rx="8" fill="none" stroke="#000000" stroke-width="4" />
-    <polygon points="14,25 34,25 40,18 20,18" fill="#131110" />
-    <polygon points="14,36 44,36 50,29 20,29" fill="#131110" />
-    <polygon points="14,47 50,47 56,40 20,40" fill="#131110" />
+<svg width="248" height="64" viewBox="0 0 248 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Marsa — MENA business, Jeddah">
+  <!--
+    The horizontal lockup: submark, then wordmark.
+
+    The old version set "Marsa" in Space Grotesk and the strapline in JetBrains
+    Mono via font-family, then shipped as an <img>. An SVG loaded through <img>
+    cannot reach the page's webfonts, so both lines fell back to whatever the OS
+    considered "sans-serif" — the logo rendered in Helvetica on a Mac, Arial on
+    Windows, something else on Android. A wordmark that changes typeface per
+    visitor is not a wordmark.
+
+    The lettering here is drawn as paths, so it is identical everywhere and needs
+    no font to load. The strapline stays live text only because it is set in a
+    generic monospace where the fallback is acceptable and legibility beats
+    fidelity at 9px.
+  -->
+  <rect width="64" height="64" rx="14" fill="#07514D"/>
+  <path d="M8 20h17v7H8z" fill="#C8912B"/>
+  <path d="M39 20h17v7H39z" fill="#C8912B"/>
+  <path d="M8 44h48v6a4 4 0 0 1-4 4H12a4 4 0 0 1-4-4z" fill="#0B7A75"/>
+  <path d="M20 33h24l-4 8H24z" fill="#FFFFFF"/>
+  <rect x="30.5" y="15" width="3" height="18" rx="1.5" fill="#FFFFFF"/>
+
+  <!-- "Marsa", drawn. Geometric grotesque, 30px cap height, tight tracking. -->
+  <g fill="#131110">
+    <!-- M -->
+    <path d="M80 14h6.6l7.4 15.2L101.4 14H108v26h-5.6V24.2l-6.2 12.6h-4.4L85.6 24.2V40H80z"/>
+    <!-- a -->
+    <path d="M121.6 21.4c5.3 0 8.6 2.7 8.6 7.6V40h-5.2v-2.3c-1.2 1.8-3.3 2.8-6 2.8-4.2 0-7-2.4-7-5.9 0-3.6 2.8-5.7 7.9-5.9l4.9-.2v-.5c0-2.1-1.2-3.2-3.5-3.2-2 0-3.3.9-3.7 2.5l-4.9-1c.8-3.4 3.9-4.9 8.9-4.9zm-.4 15.2c2.4 0 4-1.4 4-3.5v-.9l-4 .2c-2.2.1-3.3.8-3.3 2.1 0 1.3 1.2 2.1 3.3 2.1z"/>
+    <!-- r -->
+    <path d="M135.4 21.9h5.3v3.2c1.1-2.4 3-3.6 5.6-3.6.6 0 1.1.1 1.6.2v5.1c-.7-.2-1.4-.3-2.1-.3-3.2 0-5.1 2-5.1 5.6V40h-5.3z"/>
+    <!-- s -->
+    <path d="M159.2 21.4c4.6 0 7.6 2 8.4 5.4l-4.8 1.1c-.4-1.6-1.7-2.5-3.6-2.5-1.9 0-3.1.8-3.1 2 0 1.1.8 1.6 2.7 2l3 .6c4.2.9 6.2 2.7 6.2 5.8 0 3.8-3.3 6.3-8.6 6.3-5 0-8.3-2.1-9.1-5.7l4.9-1.1c.4 1.8 1.9 2.8 4.2 2.8 2.1 0 3.4-.8 3.4-2 0-1-.8-1.6-2.6-1.9l-3-.6c-4.3-.9-6.3-2.8-6.3-6 0-3.7 3.2-6.2 8.3-6.2z"/>
+    <!-- a -->
+    <path d="M181.6 21.4c5.3 0 8.6 2.7 8.6 7.6V40H185v-2.3c-1.2 1.8-3.3 2.8-6 2.8-4.2 0-7-2.4-7-5.9 0-3.6 2.8-5.7 7.9-5.9l4.9-.2v-.5c0-2.1-1.2-3.2-3.5-3.2-2 0-3.3.9-3.7 2.5l-4.9-1c.8-3.4 3.9-4.9 8.9-4.9zm-.4 15.2c2.4 0 4-1.4 4-3.5v-.9l-4 .2c-2.2.1-3.3.8-3.3 2.1 0 1.3 1.2 2.1 3.3 2.1z"/>
   </g>
-  <text x="76" y="33" font-family="Space Grotesk, sans-serif" font-size="28" font-weight="700" fill="#131110">Marsa</text>
-  <rect x="77" y="41" width="120" height="4" fill="#C8912B" />
-  <text x="77" y="56" font-family="JetBrains Mono, monospace" font-size="9" letter-spacing="1.5" fill="#131110">MENA BUSINESS · JEDDAH</text>
+
+  <rect x="80" y="45" width="110" height="3" fill="#C8912B"/>
+  <text x="80" y="58" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="8.5" letter-spacing="1.6" fill="#4A4A46">MENA BUSINESS · JEDDAH</text>
 </svg>

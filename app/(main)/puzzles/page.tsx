@@ -48,8 +48,8 @@ export default async function PuzzlesPage() {
           <h1 className="mt-1.5 font-display text-3xl font-bold leading-[1.05] sm:text-5xl">
             Puzzles
           </h1>
-          <p className="mt-2 max-w-[52ch] text-[15px] leading-relaxed opacity-90 sm:text-base">
-            Two a day, reset at midnight Riyadh time. Everything Marsa makes itself lives here.
+          <p className="mt-1.5 font-mono text-[11px] uppercase tracking-wide opacity-80">
+            Two a day · reset midnight Riyadh
           </p>
         </div>
       </header>
@@ -61,7 +61,7 @@ export default async function PuzzlesPage() {
             lang="en"
             href="/game"
             title="Marsa Daily"
-            blurb="Five letters from Gulf business — markets, energy, trade. Six guesses."
+            blurb="Five letters · six tries"
             storageKey="marsa.daily"
             todayN={wordN}
             art={<WordArt />}
@@ -74,7 +74,7 @@ export default async function PuzzlesPage() {
             lang="en"
             href="/sudoku"
             title="Sudoku"
-            blurb="A fresh grid every morning. Easy at the start of the week, hard by the end of it."
+            blurb="A fresh grid every morning"
             storageKey="marsa.sudoku"
             todayN={sudN}
             art={<SudokuArt />}
@@ -83,19 +83,6 @@ export default async function PuzzlesPage() {
             playedLabel="Solved"
             streakLabel="Streak"
           />
-        </div>
-
-        {/* How it works — the small print a newspaper puts under its games. */}
-        <div className="mt-6 rounded-lg border-2 border-inkBorder bg-white p-4 shadow-[0_2px_0_0_rgba(26,26,26,0.9)] sm:p-5">
-          <h2 className="mb-2 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-gray-500">
-            How these work
-          </h2>
-          <p className="max-w-[70ch] text-[13px] leading-relaxed text-gray-600 sm:text-sm">
-            Every reader gets the same two puzzles each day, generated from the date itself — so
-            the grid you are solving is the grid everyone in the Gulf is solving. The day rolls
-            over at midnight Riyadh time (AST, no daylight saving). Progress and streaks are
-            stored on your own device; Marsa keeps no account and no record of how you played.
-          </p>
         </div>
 
         {/* Back into the paper. */}
@@ -116,7 +103,7 @@ export default async function PuzzlesPage() {
               href="/"
               className="mt-5 inline-block rounded-md border-2 border-inkBorder bg-white px-4 py-2.5 font-mono text-[11px] font-bold uppercase tracking-wide shadow-[0_2px_0_0_rgba(26,26,26,0.9)] transition hover:-translate-y-0.5"
             >
-              Back to the front page →
+              Back to the front page
             </Link>
           </section>
         )}

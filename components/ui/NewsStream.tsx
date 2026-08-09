@@ -5,6 +5,10 @@ import type { NewsItem } from "@/lib/feeds";
 import Link from "next/link";
 import { fmtClock, fmtDay, fmtAgo } from "@/lib/time";
 import { Thumb } from "./Thumb";
+import { SourceBadge } from "./SourceBadge";
+import { ShareButton } from "./ShareButton";
+import { SectionChip } from "@/lib/sections";
+import { ArrowIcon, StarIcon, StarFilledIcon } from "@/components/brand/icons";
 
 /**
  * The reading surface.
@@ -234,7 +238,10 @@ export function NewsStream({
                 onlySaved ? "border-inkBorder bg-accent text-ink" : "border-gray-300 bg-white hover:border-inkBorder"
               }`}
             >
-              ★ {isAr ? `محفوظ ${saved.size}` : `Saved ${saved.size}`}
+              <span className="inline-flex items-center gap-1.5">
+                <StarFilledIcon size={12} />
+                {isAr ? `محفوظ ${saved.size}` : `Saved ${saved.size}`}
+              </span>
             </button>
           )}
         </div>
@@ -286,16 +293,23 @@ export function NewsStream({
                       href={`${base}/${item.id}`}
                       tabIndex={-1}
                       aria-hidden
-                      className="hidden shrink-0 overflow-hidden rounded border-2 border-inkBorder transition hover:-translate-y-0.5 hover:shadow-[3px_3px_0_0_rgba(20,20,20,0.16)] sm:block"
+                      className="hidden w-[clamp(88px,12vw,132px)] shrink-0 overflow-hidden rounded-md border-2 border-inkBorder transition hover:-translate-y-0.5 hover:shadow-[3px_3px_0_0_rgba(20,20,20,0.16)] sm:block"
                     >
-                      <Thumb
-                        src={item.image}
-                        alt=""
-                        source={isAr ? item.sourceNameAr : item.sourceName}
-                        section={item.section}
-                        sizes="112px"
-                        className="h-[84px] w-[112px]"
-                      />
+                      {/* Was a hard-coded 112x84 box, which is why one row on a
+                          sparse page looked nothing like a row on a dense one.
+                          clamp() ties the width to the viewport with sane stops
+                          and aspect-[4/3] derives the height, so the rhythm
+                          holds at every width. */}
+                      <div className="aspect-[4/3] w-full">
+                        <Thumb
+                          src={item.image}
+                          alt=""
+                          source={isAr ? item.sourceNameAr : item.sourceName}
+                          section={item.section}
+                          sizes="(max-width: 640px) 0px, 132px"
+                          className="h-full w-full"
+                        />
+                      </div>
                     </Link>
                   )}
 
@@ -319,8 +333,11 @@ export function NewsStream({
                           <span aria-label="New" className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-teal align-middle" />
                         )}
                         {item.title}
-                        <span aria-hidden className="ml-1 font-mono text-[11px] text-gray-400 group-hover:text-teal-dark">
-                          →
+                        <span
+                          aria-hidden
+                          className="ms-1 inline-block translate-y-[2px] text-gray-300 transition group-hover:translate-x-0.5 group-hover:text-teal-dark rtl:group-hover:-translate-x-0.5 rtl:rotate-180"
+                        >
+                          <ArrowIcon size={13} />
                         </span>
                       </span>
 
@@ -329,21 +346,36 @@ export function NewsStream({
                       )}
                     </Link>
 
-                    <div className="mt-1 flex items-center gap-2 font-mono text-[10px] uppercase tracking-wide text-gray-500">
-                      <span className="font-bold text-ink">{isAr ? item.sourceNameAr : item.sourceName}</span>
-                      <span aria-hidden>·</span>
+                    <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[10px] tracking-wide text-gray-500">
+                      <SourceBadge
+                        sourceName={isAr ? item.sourceNameAr : item.sourceName}
+                        link={item.link}
+                        size={14}
+                        showName
+                      />
+                      <span aria-hidden className="text-gray-300">·</span>
                       <span>{fmtAgo(item.publishedAt, now, lang)}</span>
-                      <button
-                        type="button"
-                        onClick={() => toggleSaved(item.id)}
-                        aria-pressed={isSaved}
-                        aria-label={isSaved ? "Remove from saved" : "Save for later"}
-                        className={`ml-auto rounded px-1.5 py-0.5 transition hover:bg-gray-100 ${
-                          isSaved ? "text-accent-dark" : "text-gray-400"
-                        }`}
-                      >
-                        {isSaved ? "★" : "☆"}
-                      </button>
+                      <SectionChip slug={item.section} lang={lang} className="hidden sm:inline-flex" />
+
+                      <span className="ms-auto flex items-center gap-0.5">
+                        <button
+                          type="button"
+                          onClick={() => toggleSaved(item.id)}
+                          aria-pressed={isSaved}
+                          aria-label={isSaved ? "Remove from saved" : "Save for later"}
+                          className={`grid h-8 w-8 place-items-center rounded-full transition hover:bg-gray-100 ${
+                            isSaved ? "text-accent-dark" : "text-gray-400"
+                          }`}
+                        >
+                          {isSaved ? <StarFilledIcon size={15} /> : <StarIcon size={15} />}
+                        </button>
+                        <ShareButton
+                          url={`${base}/${item.id}`}
+                          title={item.title}
+                          sourceName={isAr ? item.sourceNameAr : item.sourceName}
+                          lang={lang}
+                        />
+                      </span>
                     </div>
                   </div>
                 </div>

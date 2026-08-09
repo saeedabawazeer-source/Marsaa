@@ -44,7 +44,7 @@ export default async function GamePage() {
             href="/"
             className="mt-6 inline-block font-mono text-[11px] font-bold uppercase tracking-wide text-teal-dark underline underline-offset-4"
           >
-            The full wire →
+            The full wire
           </Link>
         </div>
       )}

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Submark } from "../brand/Submark";
 import { CATEGORIES, CATEGORY_LABELS_AR } from "@/lib/labels";
+import { PuzzleIcon } from "@/components/brand/icons";
 
 const LINKS = CATEGORIES.map((c) => ({ href: `/ar/category/${c}`, label: CATEGORY_LABELS_AR[c] }));
 
@@ -44,7 +45,7 @@ export function NavAr() {
             href="/ar/puzzles"
             className="rounded-full border-2 border-inkBorder bg-accent px-2.5 py-0.5 font-mono text-[11px] font-bold tracking-wide transition hover:-translate-y-0.5"
           >
-            الألغاز ✦
+            <span className="inline-flex items-center gap-1.5"><PuzzleIcon size={12} />الألغاز</span>
           </Link>
         </div>
 
@@ -93,7 +94,7 @@ export function NavAr() {
               : "bg-accent text-ink"
           }`}
         >
-          الألغاز ✦
+          <span className="inline-flex items-center gap-1.5"><PuzzleIcon size={12} />الألغاز</span>
         </Link>
       </div>
     </nav>

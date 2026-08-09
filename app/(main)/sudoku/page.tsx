@@ -18,7 +18,7 @@ export default function SudokuPage() {
           href="/puzzles"
           className="inline-block rounded-md border-2 border-inkBorder bg-white px-4 py-2.5 font-mono text-[11px] font-bold uppercase tracking-wide shadow-[0_2px_0_0_rgba(26,26,26,0.9)] transition hover:-translate-y-0.5"
         >
-          ← All puzzles
+          All puzzles
         </Link>
       </div>
     </div>

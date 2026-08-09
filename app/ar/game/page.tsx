@@ -34,7 +34,7 @@ export default async function ArabicGamePage() {
             href="/ar"
             className="mt-6 inline-block font-mono text-[11px] font-bold uppercase tracking-wide text-teal-dark underline underline-offset-4"
           >
-            ← الشريط كاملاً
+            الشريط كاملاً
           </Link>
         </div>
       )}

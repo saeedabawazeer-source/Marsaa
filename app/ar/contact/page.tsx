@@ -29,7 +29,7 @@ export default function ContactPageAr() {
         <div className="rounded border-[3px] border-inkBorder bg-paper p-5">
           <div className="mb-1 font-mono text-xs uppercase tracking-wide text-teal-dark">الإعلانات</div>
           <a href="/ar/advertise" className="text-sm font-medium hover:text-accent-light">
-            صفحة الإعلان معنا ←
+            صفحة الإعلان معنا
           </a>
         </div>
       </div>

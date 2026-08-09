@@ -2,10 +2,10 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getNews, type Section } from "@/lib/feeds";
 import { NewsStream } from "@/components/ui/NewsStream";
-import { NewsCard } from "@/components/ui/NewsCard";
+import { StoryGrid } from "@/components/ui/StoryGrid";
 import { AdSlot } from "@/components/ui/AdSlot";
 import { fmtClock } from "@/lib/time";
-import { CATEGORY_LABELS_AR } from "@/lib/labels";
+import { SECTION_STYLES, SectionChip } from "@/lib/sections";
 
 const DESKS: Section[] = ["markets", "energy", "real-estate", "trade", "policy"];
 
@@ -16,7 +16,7 @@ export function generateStaticParams() {
 }
 
 export function generateMetadata({ params }: { params: { slug: string } }): Metadata {
-  const label = CATEGORY_LABELS_AR[params.slug as Section] ?? params.slug;
+  const label = SECTION_STYLES[params.slug as Section]?.ar ?? params.slug;
   return { title: label, description: `أخبار ${label} من مصادر الخليج، يجمعها مرسى.` };
 }
 
@@ -24,16 +24,17 @@ export default async function ArabicCategoryPage({ params }: { params: { slug: s
   const slug = params.slug as Section;
   if (!DESKS.includes(slug)) notFound();
 
-  const news = await getNews({ sections: [slug], limit: 60 });
-  const label = CATEGORY_LABELS_AR[slug] ?? slug;
+  const news = await getNews({ sections: [slug], limit: 60, lang: "ar" });
+  const label = SECTION_STYLES[slug].ar;
   const sources = Array.from(new Set(news.items.map((i) => i.sourceNameAr))).sort();
-  const [lead, ...rest] = news.items;
-  const grid = rest.slice(0, 6);
 
   return (
     <section dir="rtl" className="mx-auto max-w-[1240px] px-4 py-9 sm:px-6">
       <header className="mb-6 border-b-2 border-ink pb-3">
-        <h1 className="text-2xl font-bold">{label}</h1>
+        <div className="flex items-center gap-2.5">
+          <SectionChip slug={slug} lang="ar" size="md" solid />
+          <h1 className="text-2xl font-bold">{label}</h1>
+        </div>
         <p className="mt-1 font-mono text-[11px] text-gray-500">
           {news.items.length > 0
             ? `${news.items.length} خبراً · ${sources.length} مصادر · حُدّث ${fmtClock(news.fetchedAt)}`
@@ -47,14 +48,7 @@ export default async function ArabicCategoryPage({ params }: { params: { slug: s
         </p>
       ) : (
         <>
-          {lead && <NewsCard item={lead} now={news.fetchedAt} big lang="ar" />}
-          {grid.length > 0 && (
-            <div className="mt-7 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {grid.map((i) => (
-                <NewsCard key={i.id} item={i} now={news.fetchedAt} lang="ar" />
-              ))}
-            </div>
-          )}
+          <StoryGrid items={news.items} now={news.fetchedAt} lang="ar" />
           <div className="mt-10">
             <NewsStream items={news.items} now={news.fetchedAt} sources={sources} lang="ar" />
           </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { CheckIcon } from "@/components/brand/icons";
 import {
   AR_ALPHABET,
   EN_ROWS,
@@ -277,14 +278,14 @@ export function DailyGame({ lang = "en" }: { lang?: Lang }) {
         {done && (
           <div>
             <p className="font-bold">
-              {solved ? `${t.won} ✓` : `${t.lost} ${normalize(target, lang)}`}
+              {solved ? (<span className="inline-flex items-center gap-1.5">{t.won}<CheckIcon size={15} /></span>) : (`${t.lost} ${normalize(target, lang)}`)}
             </p>
             <button
               type="button"
               onClick={doShare}
               className="mt-2 rounded border-2 border-inkBorder bg-accent px-4 py-2 font-mono text-[11px] font-bold uppercase tracking-wide text-ink transition hover:-translate-y-0.5 hover:shadow-[0_3px_0_0_rgba(26,26,26,0.9)]"
             >
-              {copied ? `${t.copied} ✓` : t.share}
+              {copied ? (<span className="inline-flex items-center gap-1.5">{t.copied}<CheckIcon size={14} /></span>) : t.share}
             </button>
             <p className="mt-2 font-mono text-[10px] uppercase tracking-wide text-gray-500">{t.tomorrow}</p>
           </div>

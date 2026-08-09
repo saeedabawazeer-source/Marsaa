@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Submark } from "../brand/Submark";
+import { PuzzleIcon } from "@/components/brand/icons";
 
 const LINKS = [
   { href: "/category/markets", label: "Markets" },
@@ -62,7 +63,7 @@ export function Nav() {
             href="/puzzles"
             className="rounded-full border-2 border-inkBorder bg-accent px-2.5 py-0.5 font-mono text-[11px] font-bold uppercase tracking-wide transition hover:-translate-y-0.5"
           >
-            Puzzles ✦
+            <span className="inline-flex items-center gap-1.5"><PuzzleIcon size={12} />Puzzles</span>
           </Link>
         </div>
 
@@ -116,7 +117,7 @@ export function Nav() {
               : "bg-accent text-ink"
           }`}
         >
-          Puzzles ✦
+          <span className="inline-flex items-center gap-1.5"><PuzzleIcon size={12} />Puzzles</span>
         </Link>
       </div>
     </nav>

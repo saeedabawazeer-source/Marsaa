@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { ArrowIcon } from "@/components/brand/icons";
 
 /**
  * A puzzle card on the games page.
@@ -102,7 +103,8 @@ export function PuzzleCard({
             </span>
           )}
           <span className="text-teal-dark underline underline-offset-2 group-hover:text-accent-dark">
-            {cta} {isAr ? "←" : "→"}
+            {cta}
+            <span aria-hidden className={isAr ? "rotate-180" : ""}><ArrowIcon size={13} /></span>
           </span>
         </div>
       </div>

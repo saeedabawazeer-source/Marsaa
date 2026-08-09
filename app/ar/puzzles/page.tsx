@@ -34,9 +34,7 @@ export default async function ArabicPuzzlesPage() {
             {fmtDay(now, "ar")} · جدة
           </p>
           <h1 className="mt-1.5 font-display text-3xl font-bold leading-[1.05] sm:text-5xl">الألغاز</h1>
-          <p className="mt-2 max-w-[52ch] text-[15px] leading-relaxed opacity-90 sm:text-base">
-            لغزان كل يوم، يتجدّدان منتصف الليل بتوقيت الرياض. كل ما يصنعه مرسى بنفسه تجده هنا.
-          </p>
+          <p className="mt-1.5 font-mono text-[11px] opacity-80">لغزان يوميًا · يتجدّدان منتصف الليل</p>
         </div>
       </header>
 
@@ -46,7 +44,7 @@ export default async function ArabicPuzzlesPage() {
             lang="ar"
             href="/ar/game"
             title="مرسى اليومي"
-            blurb="خمسة حروف من عالم الأعمال الخليجي — أسواق وطاقة وتجارة. ست محاولات."
+            blurb="خمسة حروف · ست محاولات"
             storageKey="marsa.daily"
             todayN={wordN}
             art={<WordArt />}
@@ -59,7 +57,7 @@ export default async function ArabicPuzzlesPage() {
             lang="ar"
             href="/ar/sudoku"
             title="سودوكو"
-            blurb="شبكة جديدة كل صباح. سهلة في بداية الأسبوع، صعبة في نهايته."
+            blurb="شبكة جديدة كل صباح"
             storageKey="marsa.sudoku"
             todayN={sudN}
             art={<SudokuArt />}
@@ -70,14 +68,6 @@ export default async function ArabicPuzzlesPage() {
           />
         </div>
 
-        <div className="mt-6 rounded-lg border-2 border-inkBorder bg-white p-4 shadow-[0_2px_0_0_rgba(26,26,26,0.9)] sm:p-5">
-          <h2 className="mb-2 font-mono text-[10px] font-bold tracking-[0.16em] text-gray-500">كيف تعمل</h2>
-          <p className="max-w-[70ch] text-[13px] leading-relaxed text-gray-600 sm:text-sm">
-            يحصل كل قارئ على اللغزين نفسيهما كل يوم، مولّدين من التاريخ نفسه — فالشبكة التي تحلّها
-            هي الشبكة التي يحلّها الجميع في الخليج. يتجدّد اليوم منتصف الليل بتوقيت الرياض. يُحفظ
-            تقدّمك وسلاسلك على جهازك وحده؛ لا يحتفظ مرسى بأي حساب أو سجلّ لطريقة لعبك.
-          </p>
-        </div>
 
         {alsoRead.length > 0 && (
           <section className="mt-9">
@@ -94,7 +84,7 @@ export default async function ArabicPuzzlesPage() {
               href="/ar"
               className="mt-5 inline-block rounded-md border-2 border-inkBorder bg-white px-4 py-2.5 font-mono text-[11px] font-bold shadow-[0_2px_0_0_rgba(26,26,26,0.9)] transition hover:-translate-y-0.5"
             >
-              ← العودة إلى الصفحة الأولى
+              العودة إلى الصفحة الأولى
             </Link>
           </section>
         )}

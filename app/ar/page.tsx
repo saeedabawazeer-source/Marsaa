@@ -3,12 +3,13 @@ import { getMarketSnapshot } from "@/lib/market";
 import { getNews, type Section } from "@/lib/feeds";
 import { LiveTicker } from "@/components/ui/LiveTicker";
 import { NewsStream } from "@/components/ui/NewsStream";
-import { NewsCard } from "@/components/ui/NewsCard";
+import { StoryGrid } from "@/components/ui/StoryGrid";
 import { AdSlot } from "@/components/ui/AdSlot";
 import { SubscribeForm } from "@/components/ui/SubscribeForm";
 import { Thumb } from "@/components/ui/Thumb";
 import { fmtClock, fmtAgo, fmtDay } from "@/lib/time";
-import { CATEGORY_LABELS_AR } from "@/lib/labels";
+import { SECTION_STYLES, SectionChip } from "@/lib/sections";
+import { SourceBadge } from "@/components/ui/SourceBadge";
 
 /**
  * The Arabic front page.
@@ -30,30 +31,18 @@ export const revalidate = 300;
 
 const DESKS: Section[] = ["markets", "energy", "real-estate", "trade", "policy"];
 
-const DESK_ACCENT: Record<string, string> = {
-  markets: "bg-teal",
-  energy: "bg-accent",
-  "real-estate": "bg-accent-dark",
-  trade: "bg-ink",
-  policy: "bg-teal-dark",
-};
-
 export default async function ArabicHomePage() {
-  const [market, news] = await Promise.all([getMarketSnapshot(), getNews({ limit: 90 })]);
+  const [market, news] = await Promise.all([getMarketSnapshot(), getNews({ limit: 90, lang: "ar" })]);
   const now = news.fetchedAt;
 
   const sources = Array.from(new Set(news.items.map((i) => i.sourceNameAr))).sort();
   const counts = DESKS.map((slug) => ({
     slug,
-    label: CATEGORY_LABELS_AR[slug] ?? slug,
+    label: SECTION_STYLES[slug].ar,
     n: news.items.filter((i) => i.section === slug).length,
   }));
 
-  const [lead, ...rest] = news.items;
-  const withArt = rest.filter((i) => i.image);
-  const withoutArt = rest.filter((i) => !i.image);
-  const grid = [...withArt, ...withoutArt].slice(0, 6);
-  const latest = rest.slice(0, 9);
+  const latest = news.items.slice(1, 10);
 
   return (
     <div dir="rtl">
@@ -88,8 +77,8 @@ export default async function ArabicHomePage() {
                     href={`/ar/category/${d.slug}`}
                     className="group flex items-center gap-2 border-b border-gray-200 py-2.5 text-sm font-semibold transition hover:text-teal-dark"
                   >
-                    <span aria-hidden className={`h-2.5 w-2.5 shrink-0 rounded-sm ${DESK_ACCENT[d.slug]}`} />
-                    <span className="min-w-0 flex-1 truncate">{d.label}</span>
+                    <SectionChip slug={d.slug} lang="ar" />
+                    <span className="min-w-0 flex-1 truncate sr-only">{d.label}</span>
                     <span className="font-mono text-[11px] tabular-nums text-gray-400 group-hover:text-teal-dark">
                       {d.n}
                     </span>
@@ -102,21 +91,17 @@ export default async function ArabicHomePage() {
                 className="mt-6 block rounded-lg border-2 border-inkBorder bg-accent p-3.5 shadow-[0_2px_0_0_rgba(26,26,26,0.9)] transition hover:-translate-y-0.5 hover:shadow-[0_5px_0_0_rgba(26,26,26,0.9)]"
               >
                 <h3 className="mb-1 flex items-center gap-1.5 text-[13px] font-bold leading-snug">
-                  مرسى اليومي <span aria-hidden>✦</span>
+                  مرسى اليومي
                 </h3>
-                <p className="text-[12px] leading-relaxed text-ink/75">
-                  خمسة حروف من عالم الأعمال الخليجي. كلمة جديدة كل صباح.
-                </p>
+                <p className="text-[12px] leading-relaxed text-ink/75">كلمة جديدة كل صباح.</p>
                 <span className="mt-2 block font-mono text-[10px] font-bold underline underline-offset-2">
-                  ← العب لغز اليوم
+                  العب لغز اليوم
                 </span>
               </Link>
 
               <div className="mt-4 rounded-lg border-2 border-inkBorder bg-white p-3.5 shadow-[0_2px_0_0_rgba(26,26,26,0.9)]">
                 <h3 className="mb-1.5 text-[13px] font-bold leading-snug">النشرة الصباحية</h3>
-                <p className="mb-3 text-[12px] leading-relaxed text-gray-600">
-                  أخبار أعمال الخليج، مختصرة، قبل افتتاح السوق.
-                </p>
+                <p className="mb-3 text-[12px] leading-relaxed text-gray-600">قبل افتتاح السوق.</p>
                 <Link
                   href="/ar#brief"
                   className="block rounded-md border-2 border-inkBorder bg-accent px-3 py-1.5 text-center font-mono text-[11px] font-bold text-ink transition hover:-translate-y-px"
@@ -128,17 +113,8 @@ export default async function ArabicHomePage() {
           </aside>
 
           <main className="self-start">
-            {lead ? (
-              <>
-                <NewsCard item={lead} now={now} big lang="ar" />
-                {grid.length > 0 && (
-                  <div className="mt-7 grid gap-6 sm:grid-cols-2">
-                    {grid.map((i) => (
-                      <NewsCard key={i.id} item={i} now={now} lang="ar" />
-                    ))}
-                  </div>
-                )}
-              </>
+            {news.items.length > 0 ? (
+              <StoryGrid items={news.items} now={now} lang="ar" />
             ) : (
               <div className="rounded-lg border-2 border-inkBorder bg-white p-8 text-center shadow-[0_2px_0_0_rgba(26,26,26,0.9)]">
                 <h2 className="mb-2 text-lg font-bold">لا توجد أخبار الآن.</h2>
@@ -174,8 +150,10 @@ export default async function ArabicHomePage() {
                         <span className="block text-[13px] font-semibold leading-snug transition group-hover:text-teal-dark">
                           {i.title}
                         </span>
-                        <span className="mt-1 block font-mono text-[10px] text-gray-400">
-                          {i.sourceNameAr} · {fmtAgo(i.publishedAt, now, "ar")}
+                        <span className="mt-1 flex items-center gap-1.5 font-mono text-[10px] text-gray-400">
+                          <SourceBadge sourceName={i.sourceNameAr} link={i.link} size={13} showName />
+                          <span aria-hidden className="text-gray-300">·</span>
+                          {fmtAgo(i.publishedAt, now, "ar")}
                         </span>
                       </span>
                     </Link>

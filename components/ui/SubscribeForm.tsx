@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { CheckIcon } from "@/components/brand/icons";
 
 /**
  * Morning-brief signup.
@@ -55,7 +56,7 @@ export function SubscribeForm({ lang = "en" }: { lang?: "en" | "ar" }) {
         role="status"
         className="mx-auto flex max-w-md items-center justify-center gap-2.5 rounded border-[3px] border-inkBorder bg-paper px-4 py-3 text-ink shadow-md"
       >
-        <span aria-hidden className="font-mono text-lg font-bold text-teal-dark">✓</span>
+        <span aria-hidden className="text-teal-dark"><CheckIcon size={18} /></span>
         <p className="text-sm font-semibold">
           {isAr ? "تم التسجيل. تحقق من بريدك للتأكيد." : "You're on the list. Check your inbox to confirm."}
         </p>

@@ -102,28 +102,64 @@ export interface FeedResult {
  * newspaper reorganised its CMS is not a product. Breadth here is redundancy,
  * not padding — dedupe below collapses the overlap.
  */
+/**
+ * Every URL below was verified from production by /api/probe, against this
+ * file's own parser, on 2026-08-09. Nothing is in this list on the strength of
+ * looking plausible.
+ *
+ * Removed in that pass, with the reason, so nobody re-adds them:
+ *
+ *   arabnews cat/3        — answers 200 with items 58 days old. A feed that
+ *                           responds but has stopped updating is worse than one
+ *                           that 404s, because every health check calls it fine.
+ *                           This is what made the live site "look old".
+ *   argaam companies      — newest item 2.6 years old. Same failure.
+ *   alarabiya (en + ar)   — 403 to a datacentre IP. Declining to be aggregated.
+ *   arabianbusiness       — 403. Same.
+ *   maaal, asharqbusiness — 403. Same.
+ *   gulfbusiness          — 403. Same.
+ *   gulfnews, khaleejtimes, tradearabia, zawya, mubasher, aleqt, okaz,
+ *   aljazeera.net, arabnews/ar, spa (both) — 404 or HTML-not-RSS. Retired paths.
+ *
+ * The 403s are a publisher saying no. The right response is to ask them for
+ * access, not to spoof a browser user-agent until they let us through.
+ */
 export const SOURCES: Source[] = [
-  // --- Saudi desks first. Marsa is a Jeddah publication, so the Kingdom leads
-  // the mix and the wider Gulf fills in around it. ---
-  { id: "arabnews-business", name: "Arab News", nameAr: "عرب نيوز", home: "https://www.arabnews.com", url: "https://www.arabnews.com/cat/3/rss.xml", section: "markets", lang: "en" },
-  { id: "arabnews-saudi", name: "Arab News", nameAr: "عرب نيوز", home: "https://www.arabnews.com", url: "https://www.arabnews.com/cat/1/rss.xml", section: "policy", broad: true, lang: "en" },
-  { id: "arabnews-all", name: "Arab News", nameAr: "عرب نيوز", home: "https://www.arabnews.com", url: "https://www.arabnews.com/rss.xml", section: "markets", broad: true, lang: "en" },
-  { id: "saudigazette-business", name: "Saudi Gazette", nameAr: "سعودي غازيت", home: "https://saudigazette.com.sa", url: "https://saudigazette.com.sa/rssFeed/74", section: "markets", lang: "en" },
-  { id: "saudigazette-saudi", name: "Saudi Gazette", nameAr: "سعودي غازيت", home: "https://saudigazette.com.sa", url: "https://saudigazette.com.sa/rssFeed/78", section: "policy", broad: true, lang: "en" },
-  { id: "spa-en", name: "SPA", nameAr: "واس", home: "https://www.spa.gov.sa", url: "https://www.spa.gov.sa/rss.xml", section: "policy", broad: true, lang: "en" },
-  { id: "argaam-en", name: "Argaam", nameAr: "أرقام", home: "https://www.argaam.com", url: "https://www.argaam.com/en/rss", section: "markets", lang: "en" },
-  { id: "alarabiya-business", name: "Al Arabiya", nameAr: "العربية", home: "https://english.alarabiya.net", url: "https://english.alarabiya.net/tools/rss/business", section: "markets", lang: "en" },
+  /* ---------------------------------------------------------------- *
+   * ARABIC EDITION
+   * Argaam is the anchor: it is the Kingdom's business wire, it files in
+   * Arabic first, and its desks map almost one-to-one onto Marsa's.
+   * ---------------------------------------------------------------- */
+  { id: "argaam-ar-main", name: "Argaam", nameAr: "أرقام", home: "https://www.argaam.com", url: "https://www.argaam.com/ar/rss/ho-main-news?sectionid=1523", section: "markets", lang: "ar" },
+  { id: "argaam-ar-pulse", name: "Argaam", nameAr: "أرقام", home: "https://www.argaam.com", url: "https://www.argaam.com/ar/rss/ho-market-pulse?sectionid=70", section: "markets", lang: "ar", broad: true },
+  { id: "argaam-ar-global", name: "Argaam", nameAr: "أرقام", home: "https://www.argaam.com", url: "https://www.argaam.com/ar/rss/internationmarket-mainnewsar?sectionid=1334", section: "markets", lang: "ar" },
+  { id: "argaam-ar-uae", name: "Argaam", nameAr: "أرقام", home: "https://www.argaam.com", url: "https://www.argaam.com/ar/rss/ho-main-news-uae?sectionid=1533", section: "markets", lang: "ar" },
+  // Attaqa is the only Arabic source in the set that ships a thumbnail on every
+  // item, which is why the Arabic energy desk has art and the others lean on
+  // the fallback tile.
+  { id: "attaqa-ar", name: "Attaqa", nameAr: "الطاقة", home: "https://attaqa.net", url: "https://attaqa.net/feed/", section: "energy", lang: "ar" },
+  { id: "indarabia-ar-econ", name: "Independent Arabia", nameAr: "اندبندنت عربية", home: "https://www.independentarabia.com", url: "https://www.independentarabia.com/rss/economy", section: "policy", lang: "ar", broad: true },
+  { id: "albilad-ar", name: "Al Bilad", nameAr: "البلاد", home: "https://albiladdaily.com", url: "https://albiladdaily.com/feed/", section: "policy", lang: "ar", broad: true },
 
-  // --- Wider Gulf ---
-  { id: "arabianbusiness", name: "Arabian Business", nameAr: "أرابيان بزنس", home: "https://www.arabianbusiness.com", url: "https://www.arabianbusiness.com/rss.xml", section: "markets", lang: "en" },
-  { id: "khaleejtimes-business", name: "Khaleej Times", nameAr: "خليج تايمز", home: "https://www.khaleejtimes.com", url: "https://www.khaleejtimes.com/rss/business", section: "markets", lang: "en" },
-  { id: "gulfnews-business", name: "Gulf News", nameAr: "غلف نيوز", home: "https://gulfnews.com", url: "https://gulfnews.com/rss?generatorName=business", section: "markets", lang: "en" },
-  { id: "tradearabia-business", name: "TradeArabia", nameAr: "تريد أرابيا", home: "http://www.tradearabia.com", url: "http://www.tradearabia.com/rss/BUS_0.xml", section: "trade", lang: "en" },
-  { id: "tradearabia-energy", name: "TradeArabia", nameAr: "تريد أرابيا", home: "http://www.tradearabia.com", url: "http://www.tradearabia.com/rss/OGN_0.xml", section: "energy", lang: "en" },
-  { id: "tradearabia-construction", name: "TradeArabia", nameAr: "تريد أرابيا", home: "http://www.tradearabia.com", url: "http://www.tradearabia.com/rss/CONS_0.xml", section: "real-estate", lang: "en" },
-  { id: "zawya-en", name: "Zawya", nameAr: "زاوية", home: "https://www.zawya.com", url: "https://www.zawya.com/en/rss", section: "markets", lang: "en" },
+  /* ---------------------------------------------------------------- *
+   * ENGLISH EDITION
+   * ---------------------------------------------------------------- */
+  { id: "saudigazette-business", name: "Saudi Gazette", nameAr: "سعودي غازيت", home: "https://saudigazette.com.sa", url: "https://saudigazette.com.sa/rssFeed/74", section: "markets", lang: "en" },
+  { id: "argaam-en-main", name: "Argaam", nameAr: "أرقام", home: "https://www.argaam.com", url: "https://www.argaam.com/en/rss/ho-main-news?sectionid=1524", section: "markets", lang: "en" },
+  { id: "agbi-en", name: "AGBI", nameAr: "إيه جي بي آي", home: "https://www.agbi.com", url: "https://www.agbi.com/feed/", section: "markets", lang: "en" },
+  { id: "economyme-en", name: "Economy Middle East", nameAr: "إيكونومي ميدل إيست", home: "https://economymiddleeast.com", url: "https://economymiddleeast.com/feed/", section: "markets", lang: "en" },
   { id: "aljazeera-all", name: "Al Jazeera", nameAr: "الجزيرة", home: "https://www.aljazeera.com", url: "https://www.aljazeera.com/xml/rss/all.xml", section: "policy", broad: true, lang: "en" },
 ];
+
+/**
+ * Nothing older than this reaches a page.
+ *
+ * A publisher whose feed answers 200 while serving two-month-old stories is the
+ * failure mode that made the site look abandoned, and it is invisible to every
+ * check that only asks "did it respond". Age is checked per item rather than
+ * per feed, because a feed can carry a fresh top and a stale tail.
+ */
+const MAX_ITEM_AGE_DAYS = 7;
 
 
 /* ------------------------------------------------------------------ *
@@ -356,38 +392,89 @@ async function fetchOne(
  * almost every business story mentions money and would otherwise be swallowed by
  * Markets.
  */
+/**
+ * Arabic normalisation.
+ *
+ * Arabic orthography offers several ways to write the same word and publishers
+ * use all of them: أ إ آ ا for alef, ة and ه word-final, ي and ى, plus optional
+ * diacritics and tatweel padding. Matching raw strings means "الاقتصاد" and
+ * "الإقتصاد" are different words and half the vocabulary below silently never
+ * fires. Everything is folded to one form before comparison.
+ *
+ * Argaam also prefixes many headlines with U+200F RIGHT-TO-LEFT MARK, which is
+ * invisible but counts as a character and breaks a naive startsWith.
+ */
+function normalizeArabic(input: string): string {
+  return input
+    .replace(/[‎‏‪-‮ـ]/g, "")   // bidi marks, tatweel
+    .replace(/[ً-ْٰ]/g, "")               // harakat
+    .replace(/[أإآٱ]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/ؤ/g, "و")
+    .replace(/ئ/g, "ي")
+    .replace(/ة/g, "ه");
+}
+
+/** Lowercased, Arabic-folded haystack. Every match in this file runs on this. */
+function fold(input: string): string {
+  return normalizeArabic(input.toLowerCase());
+}
+
 const DESK_RULES: Array<{ section: Section; terms: string[] }> = [
   {
     section: "energy",
     terms: ["oil", "crude", "brent", "opec", "petrol", "gas", "lng", "refinery", "refining", "barrel",
       "solar", "renewable", "wind farm", "wind energy", "hydrogen", "electricity", "power plant",
-      "megawatt", "grid", "aramco", "adnoc", "energy"],
+      "megawatt", "grid", "aramco", "adnoc", "energy",
+      // Arabic
+      "نفط", "النفط", "خام", "برنت", "اوبك", "أوبك", "بترول", "غاز", "مصفاه", "تكرير", "برميل",
+      "الطاقه", "طاقه", "كهرباء", "شمسيه", "متجدده", "هيدروجين", "ميجاوات", "ارامكو", "ادنوك",
+      "الوقود", "ديزل", "بنزين", "محطه كهرباء", "الشبكه الكهربائيه"],
   },
   {
     section: "real-estate",
     terms: ["real estate", "property", "housing", "resident", "construction", "contractor", "developer",
       "tower", "villa", "apartment", "mortgage", "cement", "giga-project", "neom", "qiddiya", "roshn",
-      "diriyah", "red sea project", "master plan", "land plot"],
+      "diriyah", "red sea project", "master plan", "land plot",
+      // Arabic
+      "عقار", "عقاري", "العقاريه", "العقارات", "اسكان", "الاسكان", "مقاولات", "مقاول", "تطوير عقاري",
+      "برج", "فيلا", "شقه", "رهن", "تمويل عقاري", "اسمنت", "الاسمنت", "نيوم", "القديه", "روشن",
+      "الدرعيه", "البحر الاحمر", "مخطط", "اراضي", "ارض"],
   },
   {
     section: "trade",
     terms: ["port", "shipping", "shipment", "cargo", "container", "freight", "logistics", "supply chain",
       "export", "import", "customs", "tariff", "trade", "teu", "airline", "aviation", "airport", "carrier",
-      "tourism", "hospitality", "retail sales", "e-commerce"],
+      "tourism", "hospitality", "retail sales", "e-commerce",
+      // Arabic
+      "ميناء", "الموانئ", "شحن", "حاويات", "حاويه", "نقل بحري", "لوجستي", "لوجستيه", "سلاسل الامداد",
+      "تصدير", "صادرات", "استيراد", "واردات", "جمارك", "جمركيه", "تعرفه", "التجاره", "تجاري",
+      "طيران", "مطار", "ناقله", "سياحه", "الضيافه", "التجزئه", "التجاره الالكترونيه"],
   },
   {
     section: "markets",
     terms: ["tadawul", "stock", "share", "index", "tasi", "bourse", "exchange", "ipo", "listing", "bond",
       "sukuk", "dividend", "earnings", "profit", "revenue", "loss", "fund", "pif", "sovereign wealth",
       "investment", "investor", "valuation", "acquisition", "merger", "stake", "bank", "lender", "loan",
-      "credit", "fintech", "startup", "funding", "venture", "gdp", "inflation", "currency", "riyal"],
+      "credit", "fintech", "startup", "funding", "venture", "gdp", "inflation", "currency", "riyal",
+      // Arabic
+      "تداول", "سهم", "اسهم", "الاسهم", "مؤشر", "المؤشر", "تاسي", "بورصه", "سوق الاسهم", "اكتتاب",
+      "ادراج", "سندات", "صكوك", "توزيعات", "ارباح", "الارباح", "خساره", "خسائر", "ايرادات",
+      "صندوق", "الصناديق", "صندوق الاستثمارات", "استثمار", "مستثمر", "تقييم", "استحواذ", "اندماج",
+      "حصه", "بنك", "البنوك", "مصرف", "قرض", "تمويل", "ائتمان", "التقنيه الماليه", "شركه ناشئه",
+      "جوله تمويليه", "الناتج المحلي", "التضخم", "عمله", "ريال", "درهم", "نتائج ماليه", "الربع"],
   },
   {
     section: "policy",
     terms: ["ministry", "minister", "regulation", "regulator", "regulatory", "licence", "license",
       "cabinet", "budget", "tax", "zatca", "sama", "central bank", "reform", "vision 2030",
       "trade agreement", "trade deal", "economic policy", "fiscal", "monetary", "sanction",
-      "decree", "legislation", "compliance", "antitrust", "subsidy", "privatisation", "privatization"],
+      "decree", "legislation", "compliance", "antitrust", "subsidy", "privatisation", "privatization",
+      // Arabic
+      "وزاره", "الوزاره", "وزير", "تنظيم", "هيئه", "الهيئه", "رخصه", "ترخيص", "مجلس الوزراء",
+      "ميزانيه", "الموازنه", "ضريبه", "الضريبه", "زكاه", "هيئه الزكاه", "ساما", "البنك المركزي",
+      "اصلاح", "رؤيه 2030", "اتفاقيه", "سياسه اقتصاديه", "ماليه عامه", "نقديه", "عقوبات",
+      "مرسوم", "نظام", "تشريع", "امتثال", "منافسه", "دعم", "خصخصه"],
   },
 ];
 
@@ -419,6 +506,25 @@ const EXCLUDE_TERMS = [
   // Consumer health scares and disasters
   "outbreak", "epidemic", "pandemic", "recall of", "food poisoning", "earthquake", "flood",
   "wildfire", "hurricane", "crash landing", "plane crash",
+
+  /* --- Arabic ---
+   * Needed for the same reason as the English list, and needed urgently: the
+   * Arabic general-news feeds (Al Bilad, Independent Arabia) file far more war
+   * and crime copy than business copy, and with no Arabic vetoes the Arabic
+   * front page would lead on shelling in Lebanon. Verified against the live
+   * probe output, where exactly that was the top of both feeds. */
+  // Conflict and security
+  "حرب", "الحرب", "قصف", "غاره", "غارات", "صاروخ", "صواريخ", "مسيره", "جنود", "مسلح", "مليشيا",
+  "قتلي", "قتيل", "ضحايا", "جرحي", "مصابين", "رهينه", "هدنه", "وقف اطلاق النار", "اشتباك",
+  "ارهاب", "تفجير", "عسكري", "الجيش", "حربيه", "توغل", "احتلال", "نزوح", "لاجئين",
+  // Crime and courts
+  "اعتقال", "توقيف", "سجن", "حكم بالسجن", "جريمه", "قتل", "اعتداء", "اختطاف", "تهريب",
+  "مخدرات", "اعدام", "محكمه جنائيه",
+  // Sport
+  "كره القدم", "الدوري", "كاس العالم", "مباراه", "هدف", "لاعب", "النادي", "الاتحاد", "الهلال",
+  "النصر", "الاهلي",
+  // Disasters and health
+  "زلزال", "فيضان", "حريق", "اعصار", "وباء", "تفشي", "تسمم", "تحطم طائره",
 ];
 
 function isExcluded(hay: string): boolean {
@@ -429,11 +535,11 @@ function classify(title: string, summary: string, fallback: Section): Section {
   // The headline is weighted first. A story is about whatever its headline says
   // it is about; the standfirst often name-drops adjacent topics ("...as oil
   // prices steadied") and was pulling stories onto the wrong desk.
-  const head = title.toLowerCase();
+  const head = fold(title);
   for (const rule of DESK_RULES) {
     if (rule.terms.some((t) => head.includes(t))) return rule.section;
   }
-  const hay = `${head} ${summary.toLowerCase()}`;
+  const hay = `${head} ${fold(summary)}`;
   for (const rule of DESK_RULES) {
     if (rule.terms.some((t) => hay.includes(t))) return rule.section;
   }
@@ -468,6 +574,16 @@ const STRONG_BUSINESS_TERMS = [
   "real estate", "mortgage", "logistics", "supply chain", "e-commerce",
   "economy", "economic growth", "investment", "investor", "exports", "imports",
   "bank", "lender", "loan", "credit rating", "currency", "riyal", "dirham",
+  // Arabic — same test: vocabulary no general-news story uses by accident.
+  "تداول", "تاسي", "بورصه", "سوق الاسهم", "سعر السهم", "مساهم", "اكتتاب", "ادراج",
+  "صكوك", "سندات", "توزيعات نقديه", "ارباح فصليه", "صافي الربح", "ايرادات", "نتائج ماليه",
+  "الناتج المحلي", "التضخم", "عجز الموازنه", "فائض", "تعرفه جمركيه", "البنك المركزي",
+  "سعر الفائده", "اوبك", "خام برنت", "برميل", "مصفاه", "انبوب",
+  "ارامكو", "سابك", "صندوق الاستثمارات العامه", "ادنوك", "مبادله", "اكوا باور", "اعمار",
+  "التقنيه الماليه", "راس المال الجريء", "استحواذ", "اندماج", "حصه في",
+  "عقاري", "رهن عقاري", "لوجستيه", "سلاسل الامداد", "التجاره الالكترونيه",
+  "الاقتصاد", "نمو اقتصادي", "استثمار", "مستثمر", "صادرات", "واردات",
+  "مصرف", "قرض", "التصنيف الائتماني", "الريال", "الدرهم", "الميزانيه العامه",
 ];
 
 /**
@@ -482,21 +598,32 @@ const WEAK_BUSINESS_TERMS = [
   "business", "billion", "million", "deal", "contract", "project", "property", "construction",
   "port", "shipping", "airline", "aviation", "tourism", "retail", "startup", "funding",
   "regulation", "licence", "license", "ministry", "authority", "tax", "reform", "vision 2030",
+  // Arabic
+  "سوق", "صندوق", "ميزانيه", "تجاره", "طاقه", "غاز", "نفط", "شركه", "الرئيس التنفيذي",
+  "اعمال", "مليار", "مليون", "صفقه", "عقد", "مشروع", "عقار", "بناء", "ميناء", "شحن",
+  "طيران", "سياحه", "تجزئه", "ناشئه", "تمويل", "تنظيم", "ترخيص", "وزاره", "هيئه", "ضريبه",
 ];
 
 const SAUDI_TERMS = [
   "saudi", "riyadh", "jeddah", "makkah", "mecca", "madinah", "medina", "dammam", "khobar", "yanbu",
   "neom", "qiddiya", "diriyah", "roshn", "tadawul", "tasi", "aramco", "sabic", "pif", "sama", "zatca",
   "kingdom", "ksa", "vision 2030", "red sea",
+  // Arabic
+  "السعوديه", "سعودي", "سعوديه", "الرياض", "جده", "مكه", "المدينه المنوره", "الدمام", "الخبر",
+  "ينبع", "نيوم", "القديه", "الدرعيه", "روشن", "تداول", "تاسي", "ارامكو", "سابك",
+  "صندوق الاستثمارات العامه", "ساما", "الزكاه والضريبه", "المملكه", "رؤيه 2030", "البحر الاحمر",
 ];
 
 const GULF_TERMS = [
   "uae", "emirates", "dubai", "abu dhabi", "sharjah", "qatar", "doha", "kuwait", "bahrain", "manama",
   "oman", "muscat", "gulf", "gcc", "opec",
+  // Arabic
+  "الامارات", "دبي", "ابوظبي", "الشارقه", "قطر", "الدوحه", "الكويت", "البحرين", "المنامه",
+  "عمان", "مسقط", "الخليج", "خليجي", "مجلس التعاون", "اوبك",
 ];
 
 function isRelevant(item: { title: string; summary: string }, broad: boolean): boolean {
-  const hay = `${item.title} ${item.summary}`.toLowerCase();
+  const hay = fold(`${item.title} ${item.summary}`);
 
   // Veto first. Nothing below can rescue a story this rules out.
   if (isExcluded(hay)) return false;
@@ -521,10 +648,12 @@ const MAX_PER_SOURCE = 14;
 
 /** Headlines about the same event differ in punctuation and house style. *//** Headlines about the same event differ in punctuation and house style. */
 function dedupeKey(title: string): string {
-  return title
-    .toLowerCase()
+  return fold(title)
     .replace(/[^a-z0-9؀-ۿ ]+/g, "")
     .replace(/\b(the|a|an|of|to|in|on|for|and|as|at|by|is|its|with|after|over)\b/g, "")
+    // Arabic equivalents: the definite article and the common particles, which
+    // otherwise make "أرباح أرامكو" and "الأرباح في أرامكو" different keys.
+    .replace(/(^|\s)(ال|و|ب|ل|في|من|علي|الي|عن|مع|بعد|خلال)(?=\S)/g, "$1")
     .replace(/\s+/g, " ")
     .trim()
     .slice(0, 70);
@@ -651,6 +780,7 @@ export async function getNews(
   const seen = new Set<string>();
   const perSource = new Map<string, number>();
   const merged: NewsItem[] = [];
+  const staleBefore = Date.now() - MAX_ITEM_AGE_DAYS * 86_400_000;
 
   for (const { source, items, error } of settled) {
     statuses.push({ id: source.id, name: source.name, ok: !error, error, items: items.length });
@@ -661,6 +791,7 @@ export async function getNews(
     }
 
     for (const raw of items) {
+      if (Date.parse(raw.publishedAt) < staleBefore) continue;
       if (!isRelevant(raw, Boolean(source.broad))) continue;
 
       const used = perSource.get(source.id) ?? 0;
@@ -678,6 +809,7 @@ export async function getNews(
   // API results go through the same relevance gate and dedupe as the feeds, so
   // one pipeline decides what is on the page regardless of where it came from.
   for (const raw of apiItems) {
+    if (Date.parse(raw.publishedAt) < staleBefore) continue;
     if (!isRelevant(raw, false)) continue;
     const key = dedupeKey(raw.title);
     if (!key || seen.has(key)) continue;

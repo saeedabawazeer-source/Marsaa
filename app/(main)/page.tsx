@@ -3,7 +3,9 @@ import { getMarketSnapshot } from "@/lib/market";
 import { getNews, type Section } from "@/lib/feeds";
 import { LiveTicker } from "@/components/ui/LiveTicker";
 import { NewsStream } from "@/components/ui/NewsStream";
-import { NewsCard } from "@/components/ui/NewsCard";
+import { StoryGrid } from "@/components/ui/StoryGrid";
+import { SectionChip } from "@/lib/sections";
+import { SourceBadge } from "@/components/ui/SourceBadge";
 import { AdSlot } from "@/components/ui/AdSlot";
 import { SubscribeForm } from "@/components/ui/SubscribeForm";
 import { Thumb } from "@/components/ui/Thumb";
@@ -39,14 +41,6 @@ const DESKS: Array<{ slug: Section; label: string }> = [
   { slug: "policy", label: "Policy" },
 ];
 
-const DESK_ACCENT: Record<string, string> = {
-  markets: "bg-teal",
-  energy: "bg-accent",
-  "real-estate": "bg-accent-dark",
-  trade: "bg-ink",
-  policy: "bg-teal-dark",
-};
-
 export default async function HomePage() {
   const [market, news] = await Promise.all([getMarketSnapshot(), getNews({ limit: 90 })]);
   const now = news.fetchedAt;
@@ -54,11 +48,7 @@ export default async function HomePage() {
   const sources = Array.from(new Set(news.items.map((i) => i.sourceName))).sort();
   const counts = DESKS.map((d) => ({ ...d, n: news.items.filter((i) => i.section === d.slug).length }));
 
-  const [lead, ...rest] = news.items;
-  const withArt = rest.filter((i) => i.image);
-  const withoutArt = rest.filter((i) => !i.image);
-  const grid = [...withArt, ...withoutArt].slice(0, 6);
-  const latest = rest.slice(0, 9);
+  const latest = news.items.slice(1, 10);
 
   return (
     <>
@@ -97,7 +87,7 @@ export default async function HomePage() {
                     href={`/category/${d.slug}`}
                     className="group flex items-center gap-2 border-b border-gray-200 py-2.5 text-sm font-semibold transition hover:text-teal-dark"
                   >
-                    <span aria-hidden className={`h-2.5 w-2.5 shrink-0 rounded-sm ${DESK_ACCENT[d.slug]}`} />
+                    <SectionChip slug={d.slug} />
                     <span className="min-w-0 flex-1 truncate">{d.label}</span>
                     <span className="font-mono text-[11px] tabular-nums text-gray-400 group-hover:text-teal-dark">
                       {d.n}
@@ -113,21 +103,17 @@ export default async function HomePage() {
                 className="mt-6 block rounded-lg border-2 border-inkBorder bg-accent p-3.5 shadow-[0_2px_0_0_rgba(26,26,26,0.9)] transition hover:-translate-y-0.5 hover:shadow-[0_5px_0_0_rgba(26,26,26,0.9)]"
               >
                 <h3 className="mb-1 flex items-center gap-1.5 text-[13px] font-bold leading-snug">
-                  Marsa Daily <span aria-hidden>✦</span>
+                  Marsa Daily
                 </h3>
-                <p className="text-[12px] leading-relaxed text-ink/75">
-                  Five letters from Gulf business. New word every morning.
-                </p>
+                <p className="text-[12px] leading-relaxed text-ink/75">New word every morning.</p>
                 <span className="mt-2 block font-mono text-[10px] font-bold uppercase tracking-wide underline underline-offset-2">
-                  Play today&rsquo;s →
+                  Play today&rsquo;s
                 </span>
               </Link>
 
               <div className="mt-4 rounded-lg border-2 border-inkBorder bg-white p-3.5 shadow-[0_2px_0_0_rgba(26,26,26,0.9)]">
                 <h3 className="mb-1.5 text-[13px] font-bold leading-snug">Morning brief</h3>
-                <p className="mb-3 text-[12px] leading-relaxed text-gray-600">
-                  The Gulf wire, condensed, before the Riyadh open.
-                </p>
+                <p className="mb-3 text-[12px] leading-relaxed text-gray-600">Before the Riyadh open.</p>
                 <Link
                   href="/#brief"
                   className="block rounded-md border-2 border-inkBorder bg-accent px-3 py-1.5 text-center font-mono text-[11px] font-bold uppercase tracking-wide text-ink transition hover:-translate-y-px"
@@ -144,17 +130,8 @@ export default async function HomePage() {
               h-full inflate to ~1800px and visually overrun the wire section
               below it. */}
           <main className="self-start">
-            {lead ? (
-              <>
-                <NewsCard item={lead} now={now} big />
-                {grid.length > 0 && (
-                  <div className="mt-7 grid gap-6 sm:grid-cols-2">
-                    {grid.map((i) => (
-                      <NewsCard key={i.id} item={i} now={now} />
-                    ))}
-                  </div>
-                )}
-              </>
+            {news.items.length > 0 ? (
+              <StoryGrid items={news.items} now={now} />
             ) : (
               /* Honest empty state: a portal whose feeds are down says so rather
                  than showing yesterday dressed as today. */
@@ -197,8 +174,10 @@ export default async function HomePage() {
                         <span className="block text-[13px] font-semibold leading-snug transition group-hover:text-teal-dark">
                           {i.title}
                         </span>
-                        <span className="mt-1 block font-mono text-[10px] uppercase tracking-wide text-gray-400">
-                          {i.sourceName} · {fmtAgo(i.publishedAt, now)}
+                        <span className="mt-1 flex items-center gap-1.5 font-mono text-[10px] tracking-wide text-gray-400">
+                          <SourceBadge sourceName={i.sourceName} link={i.link} size={13} showName />
+                          <span aria-hidden className="text-gray-300">·</span>
+                          {fmtAgo(i.publishedAt, now)}
                         </span>
                       </span>
                     </Link>
